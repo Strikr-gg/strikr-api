@@ -1,0 +1,212 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input AuthInputType {
+  email: String
+  password: String!
+  username: String
+}
+
+type AuthObjectType {
+  email: String!
+  id: Float!
+  token: String!
+}
+
+input CreateUserInputType {
+  email: String!
+  password: String!
+  username: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input GuideInputType {
+  authorId: Float!
+  character: String
+  content: String!
+  nogo_awakenings: [String!]
+  pref_awakenings: [String!]
+  role: String
+  situ_awakenings: [String!]
+  title: String!
+}
+
+type GuideObjectType {
+  author: UserObjectType!
+  authorId: Float!
+  content: String!
+  createdAt: DateTime!
+  id: Float!
+  nogo_awakenings: [String!]
+  pref_awakenings: [String!]
+  role: String!
+  situ_awakenings: [String!]
+  title: String!
+  updatedAt: DateTime!
+}
+
+type MatchObjectType {
+  endTime: String!
+  gamemode: String!
+  id: Float!
+  map: String!
+  players: [PlayerObjectType!]!
+  startTime: String!
+}
+
+type MatchOnPlayerObjectType {
+  createdAt: DateTime
+  id: Float!
+  match: MatchObjectType!
+  matchId: String!
+  playerId: String!
+}
+
+type Mutation {
+  createGuide(GuideCreateInput: GuideInputType!): GuideObjectType!
+  createPlayer(PlayerCreateInput: PlayerInputType!): PlayerObjectType!
+  createUser(UserCreateInput: CreateUserInputType!): UserObjectType!
+  deleteUser(username: String!): UserObjectType!
+  login(loginInput: AuthInputType!): AuthObjectType!
+  updateGuide(GuideUpdateInput: GuideInputType!): GuideObjectType!
+  updateUser(UserUpdateInput: UpdateUserInputType!, id: Float!): UserObjectType!
+}
+
+type PilotAutocompleteObjectType {
+  emoticonId: String!
+  region: String!
+  tags: [String!]!
+  username: String!
+}
+
+type PlayerCharacterMasteryItemObjectType {
+  characterAssetName: String!
+  currentTier: Float!
+  currentTierXp: Float!
+  idxHighestTierCollected: Float!
+  maxTier: Float!
+  totalXp: Float!
+  xpToNextTier: Float!
+}
+
+type PlayerCharacterMasteryObjectType {
+  characterMasteries: [PlayerCharacterMasteryItemObjectType!]!
+  playerId: String!
+  timestamp: String!
+}
+
+input PlayerCharacterRatingInputType {
+  assists: Float!
+  character: String!
+  gamemode: String!
+  games: Float!
+  knockouts: Float!
+  losses: Float!
+  mvp: Float!
+  playerId: String!
+  role: String!
+  saves: Float!
+  scores: Float!
+  wins: Float!
+}
+
+type PlayerCharacterRatingObjectType {
+  assists: Float!
+  character: String!
+  createdAt: DateTime!
+  gamemode: String!
+  games: Float!
+  id: Float!
+  knockouts: Float!
+  losses: Float!
+  mvp: Float!
+  player: PlayerObjectType!
+  playerId: String!
+  role: String!
+  saves: Float!
+  scores: Float!
+  wins: Float!
+}
+
+input PlayerInputType {
+  emoticonId: String
+  logoId: String
+  nameplareId: String
+  nameplateId: String
+  ratings: [PlayerCharacterRatingInputType!]
+  titleId: String
+  userId: Float!
+  username: String!
+}
+
+type PlayerMasteryObjectType {
+  currentLevel: Float!
+  currentLevelXp: Float!
+  playerId: String!
+  timestamp: String!
+  totalXp: Float!
+  xpToNextLevel: Float!
+}
+
+type PlayerObjectType {
+  characterMastery: PlayerCharacterMasteryObjectType
+  characterRatings: [PlayerCharacterRatingObjectType!]
+  createdAt: DateTime
+  emoticonId: String!
+  id: String!
+  logoId: String
+  mastery: PlayerMasteryObjectType
+  matches: [MatchOnPlayerObjectType!]
+  nameplateId: String
+  ratings: [PlayerRatingObjectType!]
+  region: String!
+  tags: [String!]
+  titleId: String
+  updatedAt: DateTime
+  user: UserObjectType
+  userId: Float
+  username: String!
+}
+
+type PlayerRatingObjectType {
+  createdAt: DateTime
+  games: Float!
+  id: Float!
+  losses: Float!
+  masteryLevel: Float!
+  playerId: String!
+  rank: Float!
+  rating: Float!
+  wins: Float!
+}
+
+type Query {
+  ensurePlayer(name: String!, refresh: Boolean): PlayerObjectType!
+  getGuide(id: Float!): GuideObjectType!
+  getGuides: [GuideObjectType!]!
+  getPilotsAutoComplete: PilotAutocompleteObjectType!
+  getPlayer(id: String!): PlayerObjectType!
+  getPlayerByName(name: String!): PlayerObjectType!
+  getPlayers: [PlayerObjectType!]!
+  getUser(username: String!): UserObjectType!
+  getUsers: [UserObjectType!]!
+}
+
+input UpdateUserInputType {
+  email: String
+  password: String
+  username: String
+}
+
+type UserObjectType {
+  guides: [GuideObjectType!]
+  id: Float!
+  isStaff: Boolean!
+  player: PlayerObjectType
+  username: String!
+}

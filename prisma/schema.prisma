@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  username String  @unique @db.Citext()
+  password String
+  email    String  @unique
+  isStaff  Boolean @default(false)
+  player   Player?
+  guides   Guide[]
+}
+
+model Player {
+  id               String                  @unique
+  userId           Int?                    @unique
+  username         String                  @unique @db.Citext()
+  region           String
+  user             User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratings          PlayerRating[]
+  matches          PlayerMatch[]
+  characterRatings PlayerCharacterRating[]
+  logoId           String?
+  nameplateId      String?
+  emoticonId       String?
+  titleId          String?
+  socialUrl        String?
+  createdAt        DateTime?               @default(now())
+  tags             String[]                @default([])
+  updatedAt        DateTime?               @default(now()) @updatedAt
+}
+
+model PlayerRating {
+  id           Int      @id @default(autoincrement())
+  playerId     String
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  rating       Int      @default(0)
+  rank         Int      @default(10001)
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  masteryLevel Int      @default(0)
+  games        Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+enum Gamemode {
+  None
+  NormalInitial
+  RankedInitial
+}
+
+model PlayerCharacterRating {
+  id        Int      @id @default(autoincrement())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character String
+  role      String
+  games     Int
+  assists   Int
+  knockouts Int
+  losses    Int
+  mvp       Int
+  saves     Int
+  scores    Int
+  wins      Int
+  gamemode  Gamemode
+  createdAt DateTime @default(now())
+}
+
+model Match {
+  id        Int           @id @default(autoincrement())
+  map       String
+  gamemode  String
+  startTime DateTime
+  endTime   DateTime
+  players   PlayerMatch[]
+}
+
+model PlayerMatch {
+  matchId   Int     @id @default(autoincrement())
+  playerId  String
+  player    Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  match     Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  character String  @default("Unknown")
+  censored  Boolean @default(false)
+  save      Int     @default(0)
+  score     Int     @default(0)
+  ko        Int     @default(0)
+  assist    Int     @default(0)
+  damage    Int?    @default(-1)
+  shots     Int?    @default(-1)
+  redirects Int?    @default(-1)
+  orbs      Int?    @default(-1)
+
+  @@unique([matchId, playerId])
+}
+
+model Guide {
+  id              Int      @id @default(autoincrement())
+  title           String
+  content         String
+  character       String?
+  role            String?
+  authorId        Int
+  locale          String   @default("en")
+  pref_awakenings String[] @default([])
+  situ_awakenings String[] @default([])
+  nogo_awakenings String[] @default([])
+  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Esport {
+  id     Int      @id @default(autoincrement())
+  name   String
+  detail String
+  image  String
+  url    String?
+  stream String?
+  region String[]
+}
