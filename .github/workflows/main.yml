@@ -3,7 +3,7 @@ name: Execute SSH command on new commit
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
