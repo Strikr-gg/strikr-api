@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common'
 import {
   Args,
-  Int,
   Mutation,
   Parent,
   Query,
@@ -68,6 +67,7 @@ export class PlayerResolver {
   // TODO: Whitelist Strikr website when it's available!
   // @UseGuards(IpWhitelistGuard)
   // @SetMetadata('ipWhitelist', [
+  // '::ffff:172.245.142.218',
   //   '::ffff:127.0.0.1',
   //   '::ffff:179.106.175.51',
   //   '::ffff:96.92.68.150',
@@ -86,6 +86,7 @@ export class PlayerResolver {
 
   @UseGuards(IpWhitelistGuard)
   @SetMetadata('ipWhitelist', [
+    '::ffff:172.245.142.218',
     '::ffff:127.0.0.1',
     '::ffff:179.106.175.51',
     '::ffff:96.92.68.150',
@@ -97,6 +98,7 @@ export class PlayerResolver {
 
   @UseGuards(IpWhitelistGuard)
   @SetMetadata('ipWhitelist', [
+    '::ffff:172.245.142.218',
     '::ffff:127.0.0.1',
     '::ffff:179.106.175.51',
     '::ffff:96.92.68.150',
@@ -115,6 +117,7 @@ export class PlayerResolver {
 
   @UseGuards(IpWhitelistGuard)
   @SetMetadata('ipWhitelist', [
+    '::ffff:172.245.142.218',
     '::ffff:127.0.0.1',
     '::ffff:179.106.175.51',
     '::ffff:96.92.68.150',
@@ -360,6 +363,7 @@ export class PlayerResolver {
 
   // @UseGuards(StrikrGuard)
   // @SetMetadata('ipWhitelist', ['127.0.0.1', '179.106.175.51'])
+  // '::ffff:172.245.142.218',
   // @Query(() => PlayerMasteryObjectType)
   // async getPlayerMastery(@Args('PlayerId') playerId: string) {
   //   const playerMastery = await prometheusMasteryService.getPlayerMastery(
@@ -371,6 +375,7 @@ export class PlayerResolver {
 
   // @UseGuards(StrikrGuard)
   // @SetMetadata('ipWhitelist', ['127.0.0.1', '179.106.175.51'])
+  // '::ffff:172.245.142.218',
   // @Query(() => PlayerCharacterMasteryObjectType)
   // async getPlayerCharacterMastery(@Args('PlayerId') playerId: string) {
   //   const playerMastery =
