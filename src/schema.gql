@@ -195,7 +195,7 @@ type Query {
   getPlayers: [PlayerObjectType!]!
   getUser(username: String!): UserObjectType!
   getUsers: [UserObjectType!]!
-  me: UserObjectType
+  me: UserObjectType!
 }
 
 input UpdateUserInputType {
