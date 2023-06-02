@@ -43,6 +43,17 @@ export class UserResolver {
 
   // TODO: query { me }
 
+  @UseGuards(StrikrGuard)
+  @SetMetadata('userOnly', true)
+  @Query(() => UserObjectType)
+  async me() {
+    return await this.prisma.user.findUnique({
+      where: {
+        id: 1,
+      },
+    })
+  }
+
   @Query(() => [UserObjectType])
   async getUsers() {
     return await this.prisma.user.findMany()
