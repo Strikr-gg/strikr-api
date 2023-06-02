@@ -18,6 +18,6 @@ jobs:
         echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.REMOTE_HOST }} > ~/.ssh/known_hosts
     - name: connect and pull
-      run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "cd ${{ secrets.TARGET }} && git checkout master && git pull && yarn build && pm2 restart api && exit"
+      run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "cd ${{ secrets.TARGET }} && git checkout master && git pull && yarn && yarn build && pm2 restart api && exit"
     - name: cleanup
       run: rm -rf ~/.ssh
