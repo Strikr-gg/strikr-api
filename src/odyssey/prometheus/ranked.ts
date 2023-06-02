@@ -38,7 +38,6 @@ export class PrometheusRankedService {
     entriesBefore = 0,
     entriesAfter = 0,
   ) {
-    console.log('Querying user on leaderboard', specificRegion, specificRegion)
     const { data } =
       await httpservice.get<ODYSSEY.PROMETHEUS.LeaderboardSearch>(
         `/v1/ranked/leaderboard/search/${id}`,
@@ -54,7 +53,6 @@ export class PrometheusRankedService {
   }
 
   async ensurePlayerIsOnLeaderboard(id: string, specificRegion?: string) {
-    console.log('Ensuring user is on leaderboard', specificRegion)
     for (const region of [
       ...(specificRegion
         ? [specificRegion]
