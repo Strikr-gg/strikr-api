@@ -20,4 +20,4 @@ jobs:
         
       - name: Execute SSH command
         run: |
-          ssh root@${{ secrets.REMOTE_HOST }}  -o StrictHostKeyChecking=no "cd /root/strikr-api && git pull && yarn && yarn build && pm2 restart api"
+          ssh root@${{ secrets.REMOTE_HOST }}  -o StrictHostKeyChecking=no "cd /root/strikr-api && git pull && yarn && yarn prisma generate && yarn build && pm2 restart api"
