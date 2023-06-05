@@ -37,6 +37,7 @@ model Player {
   createdAt        DateTime?               @default(now())
   tags             String[]                @default([])
   updatedAt        DateTime?               @default(now()) @updatedAt
+  currentXp        Int                     @default(0)
 }
 
 model PlayerRating {
