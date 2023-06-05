@@ -160,7 +160,7 @@ export class PlayerResolver {
         where: {
           AND: [
             {
-              playerId: cachedPlayer.id || odyCachedPlayer.playerId,
+              playerId: cachedPlayer?.id || odyCachedPlayer.playerId,
             },
             {
               createdAt: cachedPlayer.updatedAt,
