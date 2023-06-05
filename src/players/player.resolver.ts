@@ -162,9 +162,6 @@ export class PlayerResolver {
             {
               playerId: cachedPlayer?.id || odyCachedPlayer.playerId,
             },
-            {
-              createdAt: cachedPlayer.updatedAt,
-            },
           ],
         },
         orderBy: {
