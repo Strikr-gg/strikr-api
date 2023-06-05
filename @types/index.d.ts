@@ -35,6 +35,7 @@ export namespace ODYSSEY {
       platformIds: PlatformIds
       masteryLevel: number
       organization: Organization
+      socialUrl: string
     }
 
     export interface MostPlayedCharacter {

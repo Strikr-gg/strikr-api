@@ -31,6 +31,8 @@ import prometheusStatsService from 'src/odyssey/prometheus/stats'
 import prometheusMasteryService from 'src/odyssey/prometheus/mastery'
 import { StrikrGuard } from 'src/auth/auth.guard'
 import { IpWhitelistGuard } from 'src/ip.guard'
+import { sumRoleStatProperties } from './player'
+import { create } from 'domain'
 
 function compareObjects(obj1: any, obj2: any): boolean {
   const keys1 = Object.keys(obj1)
@@ -41,17 +43,23 @@ function compareObjects(obj1: any, obj2: any): boolean {
   }
 
   for (const key of keys1) {
+    console.log(`Compared ${key} with value ${obj1[key]} against ${obj2[key]}`)
     const val1 = obj1[key]
     const val2 = obj2[key]
     if (typeof val1 === 'object' && typeof val2 === 'object') {
+      console.log(`Recursing into ${key} with value ${val1}`)
       return compareObjects(val1, val2)
     }
 
     if (typeof val1 !== typeof val2) {
+      console.log(`Type mismatch for ${key} with value ${val1} against ${val2}`)
       return false
     }
 
     if (val1 !== val2) {
+      console.log(
+        `Value mismatch for ${key} with value ${val1} against ${val2}`,
+      )
       return false
     }
   }
@@ -128,10 +136,9 @@ export class PlayerResolver {
     @Args('refresh', { type: () => Boolean, nullable: true }) refresh: boolean,
   ) {
     const cachedPlayer = await this.prisma.player.findUnique({
-      where: {
-        username: name.toLowerCase(),
-      },
+      where: { username: name.toLowerCase() },
     })
+    let createNewRating = refresh
 
     if (!refresh && cachedPlayer) {
       console.debug(
@@ -141,208 +148,263 @@ export class PlayerResolver {
     }
 
     try {
-      const player = await prometheusPlayerService.queryPlayerByName(name)
-      const { playerId, masteryLevel: playerMasteryLevel } = player
-
-      let playerGames = 0
-      let rank = 10_001
-      let region = 'Global'
-      let playerWins = 0
-      let playerLosses = 0
-      let playerRating = 0
-
-      await prometheusRankedService
-        .ensurePlayerIsOnLeaderboard(
-          playerId,
-          cachedPlayer ? cachedPlayer.region : undefined,
-        )
-        .then((playerOnBoard) => {
-          playerGames = playerOnBoard.player.games
-          rank = playerOnBoard.player.rank
-          region = playerOnBoard.region
-          playerWins = playerOnBoard.player.wins
-          playerLosses = playerOnBoard.player.losses
-          playerRating = playerOnBoard.player.rating
-        })
-        .catch(() => {
-          console.debug(
-            `Attempted to search for stats from user below 10k: ${name}`,
-          )
-          // console.log(error)
-        })
-
-      const playerStatistics = await prometheusStatsService.getPlayerStats(
-        playerId,
+      const odyCachedPlayer = await prometheusPlayerService.queryPlayerByName(
+        name,
       )
 
-      const playerRatings = {
-        games: playerGames,
-        masteryLevel: playerMasteryLevel,
-        rank,
-        wins: playerWins,
-        losses: playerLosses,
-        rating: playerRating,
-      }
+      const playerMastery = await prometheusMasteryService.getPlayerMastery(
+        cachedPlayer?.id || odyCachedPlayer.playerId,
+      )
 
-      if (cachedPlayer) {
-        const latestCachedRating = await this.prisma.playerRating.findFirst({
-          where: {
-            playerId: cachedPlayer.id,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        })
-
-        if (
-          compareObjects(
+      const strikrLatestRating = await this.prisma.playerRating.findFirst({
+        where: {
+          AND: [
             {
-              games: latestCachedRating.games,
-              masteryLevel: latestCachedRating.masteryLevel,
-              rank: latestCachedRating.rank,
-              wins: latestCachedRating.wins,
-              losses: latestCachedRating.losses,
-              rating: latestCachedRating.rating,
+              playerId: cachedPlayer.id || odyCachedPlayer.playerId,
             },
-            playerRatings,
+            {
+              createdAt: cachedPlayer.updatedAt,
+            },
+          ],
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+
+      if (
+        cachedPlayer &&
+        playerMastery &&
+        playerMastery.currentLevelXp === cachedPlayer.currentXp
+      ) {
+        console.debug(
+          `Denying ratings creation: ${name} @ ${
+            cachedPlayer?.region || 'Global'
+          } Reason: (Have not played the game since last rating)`,
+        )
+
+        createNewRating = false
+
+        if (strikrLatestRating) {
+          console.log(
+            `Found cached rating: ${strikrLatestRating.id} - updating to currentTime and returning cached value`,
           )
-        ) {
+
           await this.prisma.player.update({
             where: {
               id: cachedPlayer.id,
             },
             data: {
-              updatedAt: new Date(),
               ratings: {
                 update: {
                   where: {
-                    id: latestCachedRating.id,
+                    id: strikrLatestRating.id,
                   },
                   data: {
                     createdAt: new Date(),
                   },
                 },
               },
+              updatedAt: new Date(),
             },
           })
-          console.log(
-            'Returning cached Player, Reason: No changes - updated last rating',
-          )
+
           return cachedPlayer
         }
       }
 
-      const createdPlayer = await this.prisma.player.upsert({
+      const playerOnLeaderboardObj = {
+        region: 'Global',
+        games: 0,
+        wins: 0,
+        losses: 0,
+        rank: 10_001,
+        rating: 0,
+      }
+
+      await prometheusRankedService
+        .ensurePlayerIsOnLeaderboard(
+          cachedPlayer?.id || odyCachedPlayer.playerId,
+        )
+        .then(async (result) => {
+          if (!result?.player) {
+            return
+          }
+
+          playerOnLeaderboardObj.games = result.player.games
+          playerOnLeaderboardObj.wins = result.player.wins
+          playerOnLeaderboardObj.losses = result.player.losses
+          playerOnLeaderboardObj.rank = result.player.rank
+          playerOnLeaderboardObj.rating = result.player.rating
+          playerOnLeaderboardObj.region = result.region
+
+          if (
+            strikrLatestRating &&
+            result.player.rating === strikrLatestRating.rating
+          ) {
+            createNewRating = false
+          }
+        })
+        .catch((e) => {
+          console.error(e)
+          console.debug(`The player ${name} is not on the leaderboard (10k).`)
+        })
+
+      const odyPlayerStats = await prometheusStatsService.getPlayerStats(
+        cachedPlayer?.id || odyCachedPlayer.playerId,
+      )
+
+      const totalRankedCharacterStats =
+        createNewRating &&
+        sumRoleStatProperties(
+          odyPlayerStats.characterStats
+            .filter((stat) => stat.ratingName === 'RankedInitial')
+            .map((stat) => stat.roleStats),
+        )
+
+      console.log('Creating new ratings?', createNewRating)
+      return await this.prisma.player.upsert({
         where: {
-          id: playerId,
+          id: cachedPlayer?.id || odyCachedPlayer.playerId,
         },
         create: {
-          id: playerId,
-          region,
-          username: player.username.toLowerCase(),
-          logoId: player.logoId,
-          emoticonId: player.emoticonId,
-          nameplateId: player.nameplateId,
-          titleId: player.titleId,
-          tags: player.tags || [],
-          ratings: {
-            create: playerRatings,
-          },
-          characterRatings: {
-            createMany: {
-              data: [
-                ...playerStatistics.characterStats.map((characterStat) => {
-                  return {
-                    character: characterStat.characterId,
-                    role: 'Forward',
-                    games: characterStat.roleStats.Forward.games,
-                    assists: characterStat.roleStats.Forward.assists,
-                    knockouts: characterStat.roleStats.Forward.knockouts,
-                    wins: characterStat.roleStats.Forward.wins,
-                    losses: characterStat.roleStats.Forward.losses,
-                    mvp: characterStat.roleStats.Forward.mvp,
-                    saves: characterStat.roleStats.Forward.saves,
-                    scores: characterStat.roleStats.Forward.scores,
-                    gamemode: characterStat.ratingName as Gamemode,
-                  }
-                }),
-                ...playerStatistics.characterStats.map((characterStat) => {
-                  return {
-                    character: characterStat.characterId,
-                    role: 'Goalie',
-                    games: characterStat.roleStats.Goalie.games,
-                    assists: characterStat.roleStats.Goalie.assists,
-                    knockouts: characterStat.roleStats.Goalie.knockouts,
-                    wins: characterStat.roleStats.Goalie.wins,
-                    losses: characterStat.roleStats.Goalie.losses,
-                    mvp: characterStat.roleStats.Goalie.mvp,
-                    saves: characterStat.roleStats.Goalie.saves,
-                    scores: characterStat.roleStats.Goalie.scores,
-                    gamemode: characterStat.ratingName as Gamemode,
-                  }
-                }),
-              ],
+          id: odyCachedPlayer.playerId,
+          username: odyCachedPlayer.username.toLowerCase(),
+          region: playerOnLeaderboardObj.region,
+          currentXp: playerMastery.currentLevelXp,
+          nameplateId: odyCachedPlayer.nameplateId,
+          emoticonId: odyCachedPlayer.emoticonId,
+          logoId: odyCachedPlayer.logoId,
+          titleId: odyCachedPlayer.title,
+          tags: odyCachedPlayer.tags,
+          socialUrl: odyCachedPlayer?.socialUrl || '',
+          ...(totalRankedCharacterStats && {
+            characterRatings: {
+              createMany: {
+                data: [
+                  ...odyPlayerStats.characterStats
+                    .filter(
+                      (stat) =>
+                        stat.ratingName === 'RankedInitial' ||
+                        stat.ratingName === 'NormalInitial',
+                    )
+                    .map((characterStat) => {
+                      console.log(
+                        'Creating characterRating for ',
+                        characterStat.ratingName,
+                      )
+                      return {
+                        character: characterStat.characterId,
+                        role: 'Forward',
+                        games: characterStat.roleStats.Forward.games,
+                        assists: characterStat.roleStats.Forward.assists,
+                        knockouts: characterStat.roleStats.Forward.knockouts,
+                        wins: characterStat.roleStats.Forward.wins,
+                        losses: characterStat.roleStats.Forward.losses,
+                        mvp: characterStat.roleStats.Forward.mvp,
+                        saves: characterStat.roleStats.Forward.saves,
+                        scores: characterStat.roleStats.Forward.scores,
+                        gamemode: characterStat.ratingName as 'RankedInitial',
+                      }
+                    }),
+                  ...odyPlayerStats.characterStats.map((characterStat) => {
+                    return {
+                      character: characterStat.characterId,
+                      role: 'Goalie',
+                      games: characterStat.roleStats.Goalie.games,
+                      assists: characterStat.roleStats.Goalie.assists,
+                      knockouts: characterStat.roleStats.Goalie.knockouts,
+                      wins: characterStat.roleStats.Goalie.wins,
+                      losses: characterStat.roleStats.Goalie.losses,
+                      mvp: characterStat.roleStats.Goalie.mvp,
+                      saves: characterStat.roleStats.Goalie.saves,
+                      scores: characterStat.roleStats.Goalie.scores,
+                      gamemode: characterStat.ratingName as Gamemode,
+                    }
+                  }),
+                ],
+              },
             },
-          },
+            ratings: {
+              create: {
+                rating: playerOnLeaderboardObj.rating,
+                games: playerOnLeaderboardObj.games,
+                wins: playerOnLeaderboardObj.wins,
+                losses: playerOnLeaderboardObj.losses,
+                rank: playerOnLeaderboardObj.rank,
+              },
+            },
+          }),
         },
         update: {
-          id: playerId,
-          region,
-          username: player.username.toLowerCase(),
-          logoId: player.logoId,
-          emoticonId: player.emoticonId,
-          nameplateId: player.nameplateId,
-          titleId: player.titleId,
-          ratings: {
-            create: {
-              games: playerGames,
-              masteryLevel: playerMasteryLevel,
-              rank,
-              wins: playerWins,
-              losses: playerLosses,
-              rating: playerRating,
+          updatedAt: new Date(),
+          region: playerOnLeaderboardObj.region,
+          currentXp: playerMastery.currentLevelXp,
+          nameplateId: odyCachedPlayer.nameplateId,
+          emoticonId: odyCachedPlayer.emoticonId,
+          logoId: odyCachedPlayer.logoId,
+          titleId: odyCachedPlayer.title,
+          tags: odyCachedPlayer.tags,
+          socialUrl: odyCachedPlayer?.socialUrl || '',
+          ...(totalRankedCharacterStats && {
+            characterRatings: {
+              createMany: {
+                data: [
+                  ...odyPlayerStats.characterStats
+                    .filter(
+                      (stat) =>
+                        stat.ratingName === 'RankedInitial' ||
+                        stat.ratingName === 'NormalInitial',
+                    )
+                    .map((characterStat) => {
+                      console.log(
+                        'Updating characterRating for ',
+                        characterStat.ratingName,
+                      )
+                      return {
+                        character: characterStat.characterId,
+                        role: 'Forward',
+                        games: characterStat.roleStats.Forward.games,
+                        assists: characterStat.roleStats.Forward.assists,
+                        knockouts: characterStat.roleStats.Forward.knockouts,
+                        wins: characterStat.roleStats.Forward.wins,
+                        losses: characterStat.roleStats.Forward.losses,
+                        mvp: characterStat.roleStats.Forward.mvp,
+                        saves: characterStat.roleStats.Forward.saves,
+                        scores: characterStat.roleStats.Forward.scores,
+                        gamemode: characterStat.ratingName as 'RankedInitial',
+                      }
+                    }),
+                  ...odyPlayerStats.characterStats.map((characterStat) => {
+                    return {
+                      character: characterStat.characterId,
+                      role: 'Goalie',
+                      games: characterStat.roleStats.Goalie.games,
+                      assists: characterStat.roleStats.Goalie.assists,
+                      knockouts: characterStat.roleStats.Goalie.knockouts,
+                      wins: characterStat.roleStats.Goalie.wins,
+                      losses: characterStat.roleStats.Goalie.losses,
+                      mvp: characterStat.roleStats.Goalie.mvp,
+                      saves: characterStat.roleStats.Goalie.saves,
+                      scores: characterStat.roleStats.Goalie.scores,
+                      gamemode: characterStat.ratingName as Gamemode,
+                    }
+                  }),
+                ],
+              },
             },
-          },
-          characterRatings: {
-            createMany: {
-              data: [
-                ...playerStatistics.characterStats.map((characterStat) => {
-                  return {
-                    character: characterStat.characterId,
-                    role: 'Forward',
-                    games: characterStat.roleStats.Forward.games,
-                    assists: characterStat.roleStats.Forward.assists,
-                    knockouts: characterStat.roleStats.Forward.knockouts,
-                    wins: characterStat.roleStats.Forward.wins,
-                    losses: characterStat.roleStats.Forward.losses,
-                    mvp: characterStat.roleStats.Forward.mvp,
-                    saves: characterStat.roleStats.Forward.saves,
-                    scores: characterStat.roleStats.Forward.scores,
-                    gamemode: characterStat.ratingName as Gamemode,
-                  }
-                }),
-                ...playerStatistics.characterStats.map((characterStat) => {
-                  return {
-                    character: characterStat.characterId,
-                    role: 'Goalie',
-                    games: characterStat.roleStats.Goalie.games,
-                    assists: characterStat.roleStats.Goalie.assists,
-                    knockouts: characterStat.roleStats.Goalie.knockouts,
-                    wins: characterStat.roleStats.Goalie.wins,
-                    losses: characterStat.roleStats.Goalie.losses,
-                    mvp: characterStat.roleStats.Goalie.mvp,
-                    saves: characterStat.roleStats.Goalie.saves,
-                    scores: characterStat.roleStats.Goalie.scores,
-                    gamemode: characterStat.ratingName as Gamemode,
-                  }
-                }),
-              ],
+            ratings: {
+              create: {
+                rating: playerOnLeaderboardObj.rating,
+                games: playerOnLeaderboardObj.games,
+                wins: playerOnLeaderboardObj.wins,
+                losses: playerOnLeaderboardObj.losses,
+                rank: playerOnLeaderboardObj.rank,
+              },
             },
-          },
+          }),
         },
       })
-      console.log('Returning upserted Player')
-      return createdPlayer
     } catch (error) {
       console.log(error)
       return new HttpException('Player not found', HttpStatus.NOT_FOUND)
@@ -450,7 +512,7 @@ export class PlayerResolver {
         },
       })
       .characterRatings({
-        take: 17 * 4,
+        take: 100,
       })
   }
 }
