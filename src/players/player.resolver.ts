@@ -34,39 +34,6 @@ import { IpWhitelistGuard } from 'src/ip.guard'
 import { sumRoleStatProperties } from './player'
 import { create } from 'domain'
 
-function compareObjects(obj1: any, obj2: any): boolean {
-  const keys1 = Object.keys(obj1)
-  const keys2 = Object.keys(obj2)
-
-  if (keys1.length !== keys2.length) {
-    return false
-  }
-
-  for (const key of keys1) {
-    console.log(`Compared ${key} with value ${obj1[key]} against ${obj2[key]}`)
-    const val1 = obj1[key]
-    const val2 = obj2[key]
-    if (typeof val1 === 'object' && typeof val2 === 'object') {
-      console.log(`Recursing into ${key} with value ${val1}`)
-      return compareObjects(val1, val2)
-    }
-
-    if (typeof val1 !== typeof val2) {
-      console.log(`Type mismatch for ${key} with value ${val1} against ${val2}`)
-      return false
-    }
-
-    if (val1 !== val2) {
-      console.log(
-        `Value mismatch for ${key} with value ${val1} against ${val2}`,
-      )
-      return false
-    }
-  }
-
-  return true
-}
-
 @Resolver(() => PlayerObjectType)
 @Injectable()
 export class PlayerResolver {
@@ -251,14 +218,6 @@ export class PlayerResolver {
         cachedPlayer?.id || odyCachedPlayer.playerId,
       )
 
-      const totalRankedCharacterStats =
-        createNewRating &&
-        sumRoleStatProperties(
-          odyPlayerStats.characterStats
-            .filter((stat) => stat.ratingName === 'RankedInitial')
-            .map((stat) => stat.roleStats),
-        )
-
       console.log('Creating new ratings?', createNewRating)
       return await this.prisma.player.upsert({
         where: {
@@ -275,7 +234,7 @@ export class PlayerResolver {
           titleId: odyCachedPlayer.title,
           tags: odyCachedPlayer.tags,
           socialUrl: odyCachedPlayer?.socialUrl || '',
-          ...(totalRankedCharacterStats && {
+          ...(createNewRating && {
             characterRatings: {
               createMany: {
                 data: [
@@ -343,7 +302,7 @@ export class PlayerResolver {
           titleId: odyCachedPlayer.title,
           tags: odyCachedPlayer.tags,
           socialUrl: odyCachedPlayer?.socialUrl || '',
-          ...(totalRankedCharacterStats && {
+          ...(createNewRating && {
             characterRatings: {
               createMany: {
                 data: [
@@ -419,6 +378,8 @@ export class PlayerResolver {
       },
     })
   }
+
+  // @Query(() => )
 
   // @UseGuards(StrikrGuard)
   // @SetMetadata('ipWhitelist', ['127.0.0.1', '179.106.175.51'])

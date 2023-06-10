@@ -16,7 +16,8 @@ import { JwtModule } from '@nestjs/jwt'
   imports: [
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      playground: process.env.DEVELOPMENT === 'true',
+      // playground: process.env.DEVELOPMENT === 'true',
+      playground: true,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
     }),
