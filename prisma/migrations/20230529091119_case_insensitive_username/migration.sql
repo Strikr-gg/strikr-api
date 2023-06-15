@@ -1,5 +1,0 @@
--- AlterTable
-ALTER TABLE "Player" ALTER COLUMN "username" SET DATA TYPE CITEXT;
-
--- AlterTable
-ALTER TABLE "User" ALTER COLUMN "username" SET DATA TYPE CITEXT;

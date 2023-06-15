@@ -1,5 +1,4 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql'
-import { MatchObjectType } from 'src/matches/match.types'
 import { UserObjectType } from 'src/users/user.types'
 
 @ObjectType()
@@ -79,8 +78,8 @@ export class PlayerObjectType {
   @Field(() => [PlayerCharacterRatingObjectType], { nullable: true })
   characterRatings: PlayerCharacterRatingObjectType[]
 
-  @Field(() => [MatchOnPlayerObjectType], { nullable: true })
-  matches: MatchOnPlayerObjectType[]
+  // @Field(() => [MatchOnPlayerObjectType], { nullable: true })
+  // matches: MatchOnPlayerObjectType[]
 
   @Field({ nullable: true })
   logoId?: string
@@ -158,23 +157,23 @@ export class PilotAutocompleteObjectType {
   tags: string[]
 }
 
-@ObjectType()
-export class MatchOnPlayerObjectType {
-  @Field()
-  id: number
+// @ObjectType()
+// export class MatchOnPlayerObjectType {
+//   @Field()
+//   id: number
 
-  @Field()
-  playerId: string
+//   @Field()
+//   playerId: string
 
-  @Field()
-  matchId: string
+//   @Field()
+//   matchId: string
 
-  @Field({ nullable: true })
-  createdAt?: Date
+//   @Field({ nullable: true })
+//   createdAt?: Date
 
-  @Field(() => MatchObjectType)
-  match: MatchObjectType
-}
+//   @Field(() => MatchObjectType)
+//   match: MatchObjectType
+// }
 
 @ObjectType()
 export class PlayerCharacterRatingObjectType {
@@ -275,14 +274,14 @@ export class PlayerRatingInputType {
   masteryLevel: number
 }
 
-@InputType()
-export class PlayerMatchInputType {
-  @Field()
-  playerId: string
+// @InputType()
+// export class PlayerMatchInputType {
+//   @Field()
+//   playerId: string
 
-  @Field()
-  matchId: string
-}
+//   @Field()
+//   matchId: string
+// }
 
 @InputType()
 export class PlayerCharacterRatingInputType {

@@ -2,39 +2,10 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-input AuthInputType {
-  email: String
-  password: String!
-  username: String
-}
-
-type AuthObjectType {
-  email: String!
-  id: Float!
-  token: String!
-}
-
-input CreateUserInputType {
-  email: String!
-  password: String!
-  username: String!
-}
-
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
-
-input GuideInputType {
-  authorId: Float!
-  character: String
-  content: String!
-  nogo_awakenings: [String!]
-  pref_awakenings: [String!]
-  role: String
-  situ_awakenings: [String!]
-  title: String!
-}
 
 type GuideObjectType {
   author: UserObjectType!
@@ -50,31 +21,8 @@ type GuideObjectType {
   updatedAt: DateTime!
 }
 
-type MatchObjectType {
-  endTime: String!
-  gamemode: String!
-  id: Float!
-  map: String!
-  players: [PlayerObjectType!]!
-  startTime: String!
-}
-
-type MatchOnPlayerObjectType {
-  createdAt: DateTime
-  id: Float!
-  match: MatchObjectType!
-  matchId: String!
-  playerId: String!
-}
-
 type Mutation {
-  createGuide(GuideCreateInput: GuideInputType!): GuideObjectType!
   createPlayer(PlayerCreateInput: PlayerInputType!): PlayerObjectType!
-  createUser(UserCreateInput: CreateUserInputType!): UserObjectType!
-  deleteUser(username: String!): UserObjectType!
-  login(loginInput: AuthInputType!): AuthObjectType!
-  updateGuide(GuideUpdateInput: GuideInputType!): GuideObjectType!
-  updateUser(UserUpdateInput: UpdateUserInputType!, id: Float!): UserObjectType!
 }
 
 type PilotAutocompleteObjectType {
@@ -161,7 +109,6 @@ type PlayerObjectType {
   id: String!
   logoId: String
   mastery: PlayerMasteryObjectType
-  matches: [MatchOnPlayerObjectType!]
   nameplateId: String
   ratings: [PlayerRatingObjectType!]
   region: String!
@@ -186,22 +133,22 @@ type PlayerRatingObjectType {
 }
 
 type Query {
-  ensurePlayer(name: String!, refresh: Boolean): PlayerObjectType!
-  getGuide(id: Float!): GuideObjectType!
-  getGuides: [GuideObjectType!]!
+  """
+  If the player already exists on database, calculates the ΔT of the latest snapshot and the current time. If the ΔT is from "yesterday",  strikr will create a new snapshot for "Today". ensure only one sample is stored per day.
+  If the player does not exists on database, it will create a new player allong with its ratings.
+  """
+  ensurePlayer(
+    name: String!
+
+    """
+    If refresh is not set, or set to false we will return the cached Player directly. Making this function work exactly like getPlayerByName / getPlayer but with the extra functionality of creating the player if it is missing on database
+    """
+    refresh: Boolean
+  ): PlayerObjectType!
   getPilotsAutoComplete: PilotAutocompleteObjectType!
   getPlayer(id: String!): PlayerObjectType!
   getPlayerByName(name: String!): PlayerObjectType!
   getPlayers: [PlayerObjectType!]!
-  getUser(username: String!): UserObjectType!
-  getUsers: [UserObjectType!]!
-  me: UserObjectType!
-}
-
-input UpdateUserInputType {
-  email: String
-  password: String
-  username: String
 }
 
 type UserObjectType {
