@@ -130,3 +130,20 @@ model Esport {
   stream String?
   region String[]
 }
+
+model Leaderboard {
+  playerId String
+  region  String
+  emoticonId String?
+  titleId String?
+  tags String[]
+  masteryLevel Int @default(0)
+  socialUrl String?
+  rank Int
+  wins Int
+  losses Int
+  rating Int
+  topRole String
+  username String
+  @@id([playerId, region])
+}
