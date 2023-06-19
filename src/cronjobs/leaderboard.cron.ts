@@ -47,23 +47,29 @@ async function populateByBoardOffset(
     ledearboardLogger.debug(
       `Updating player ${player.playerId} #${player.rank} @ ${region}`,
     )
-    await prisma.leaderboard.create({
-      data: {
-        playerId: player.playerId,
-        region: region,
-        losses: player.losses,
-        rank: player.rank,
-        rating: player.rating,
-        topRole: player.topRole,
-        wins: player.wins,
-        emoticonId: player.emoticonId,
-        masteryLevel: player.masteryLevel,
-        socialUrl: player.socialUrl,
-        tags: player.tags,
-        titleId: player.titleId,
-        username: player.username,
-      },
-    })
+    try {
+      await prisma.leaderboard.create({
+        data: {
+          playerId: player.playerId,
+          region: region,
+          losses: player.losses,
+          rank: player.rank,
+          rating: player.rating,
+          topRole: player.topRole,
+          wins: player.wins,
+          emoticonId: player.emoticonId,
+          masteryLevel: player.masteryLevel,
+          socialUrl: player.socialUrl,
+          tags: player.tags,
+          titleId: player.titleId,
+          username: player.username,
+        },
+      })
+    } catch (e) {
+      ledearboardLogger.error(
+        `Error updating player ${player.playerId} #${player.rank} @ ${region}: ${e}`,
+      )
+    }
   }
 
   if (leaderboardPlayers.paging.totalItems > offset + count) {
