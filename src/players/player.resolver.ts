@@ -34,6 +34,7 @@ import dayjs from 'dayjs'
 import { IpWhitelistGuard } from 'src/ip.guard'
 import { PlayerService } from './player.service'
 import { UtilsService } from 'src/utils/utils.service'
+import player from 'src/odyssey/prometheus/player'
 
 @Resolver(() => PlayerObjectType)
 @Injectable()
@@ -127,13 +128,19 @@ export class PlayerResolver {
       await this.service.getLatestCharacterRatings(cachedPlayer?.id)
 
     if (!refresh && cachedPlayer) {
-      console.log('Returning cached player | Reason: refresh=false')
       return cachedPlayer
     }
 
     const odysseyPlayer = await prometheusPlayerService.queryPlayerByName(
       name.toLowerCase(),
     )
+
+    const playerMastery = await prometheusMasteryService.getPlayerMastery(
+      cachedPlayer?.id || odysseyPlayer.playerId,
+    )
+
+    const ignoreUpdates =
+      playerMastery.currentLevelXp === cachedPlayer.currentXp
 
     // The odyssey API changed or returned unexpected player data.
     // The data now mismatches the cached player.
@@ -158,22 +165,48 @@ export class PlayerResolver {
           dayjs().toISOString(),
         )
       : false
-    console.log('total ratings on database', cachedPlayerRatings?.length || 0)
-    console.log(
-      'cacheIsFromYesterday',
-      this.utils.areDifferentDays(
-        dayjs(cachedPlayerRatings?.[0]?.createdAt).toISOString(),
-        dayjs().toISOString(),
-      ),
-    )
-    console.log('forceSnapshotCreation', forceSnapshotCreation)
+
+    if (ignoreUpdates && !forceSnapshotCreation) {
+      // The player haven't played the game since the last snapshot.
+      // We will update the last snapshot's createdAt date to today.
+      // This will ensure the player is not updated again until he plays the game.
+      // This will also ensure the player is not updated again until tomorrow.
+      cachedPlayerCharacterRatings.forEach(async (pcr) => {
+        await this.prisma.playerCharacterRating.update({
+          where: {
+            id: pcr.id,
+          },
+          data: {
+            createdAt: dayjs().toISOString(),
+          },
+        })
+      })
+
+      return this.prisma.player.update({
+        data: {
+          updatedAt: new Date(),
+          ratings: {
+            update: {
+              data: {
+                createdAt: dayjs().toISOString(),
+              },
+              where: {
+                id: cachedPlayerRatings[0].id,
+              },
+            },
+          },
+        },
+        where: {
+          id: odysseyPlayer.playerId,
+        },
+      })
+    }
 
     const ensuredRegion =
       await prometheusRankedService.ensurePlayerIsOnLeaderboard(
         odysseyPlayer.playerId,
         cachedPlayer?.region,
       )
-    console.log('ensuredRegion', ensuredRegion.region)
 
     const playerStats = await prometheusStatsService.getPlayerStats(
       odysseyPlayer.playerId,
@@ -184,7 +217,7 @@ export class PlayerResolver {
         data: {
           id: odysseyPlayer.playerId,
           username: odysseyPlayer.username.toLocaleLowerCase(),
-          region: ensuredRegion.region,
+          region: ensuredRegion?.region || 'Global',
           emoticonId: odysseyPlayer.emoticonId,
           logoId: odysseyPlayer.logoId,
           titleId: odysseyPlayer.titleId,
@@ -235,11 +268,40 @@ export class PlayerResolver {
           },
           ratings: {
             create: {
-              rating: ensuredRegion.player.rating,
-              rank: ensuredRegion.player.rank,
-              wins: ensuredRegion.player.wins,
-              losses: ensuredRegion.player.losses,
-              games: ensuredRegion.player.games,
+              games:
+                ensuredRegion?.player.games ||
+                playerStats?.playerStats
+                  .filter((s) => s.ratingName === 'RankedInitial')
+                  .map(
+                    (s) => s.roleStats.Forward.games + s.roleStats.Goalie.games,
+                  )
+                  .reduce((a, b) => a + b, 0) ||
+                0,
+              losses:
+                ensuredRegion?.player.losses ||
+                playerStats?.playerStats
+                  .filter((s) => s.ratingName === 'RankedInitial')
+                  .map(
+                    (s) =>
+                      s.roleStats.Forward.losses + s.roleStats.Goalie.losses,
+                  )
+                  .reduce((a, b) => a + b, 0) ||
+                0,
+              rank: ensuredRegion?.player.rank || 10_001,
+              rating: ensuredRegion?.player.rating || 0,
+              wins:
+                ensuredRegion?.player.wins ||
+                playerStats?.playerStats
+                  .filter((s) => s.ratingName === 'RankedInitial')
+                  .map(
+                    (s) => s.roleStats.Forward.wins + s.roleStats.Goalie.wins,
+                  )
+                  .reduce((a, b) => a + b, 0) ||
+                0,
+              masteryLevel:
+                ensuredRegion?.player.masteryLevel ||
+                odysseyPlayer.masteryLevel ||
+                0,
             },
           },
         },
@@ -325,13 +387,32 @@ export class PlayerResolver {
 
     await this.prisma.playerRating.update({
       data: {
-        games: ensuredRegion.player.games,
-        losses: ensuredRegion.player.losses,
-        rank: ensuredRegion.player.rank,
-        rating: ensuredRegion.player.rating,
-        wins: ensuredRegion.player.wins,
-        masteryLevel: ensuredRegion.player.masteryLevel,
-        createdAt: dayjs().toDate(),
+        games:
+          ensuredRegion?.player.games ||
+          playerStats?.playerStats
+            .filter((s) => s.ratingName === 'RankedInitial')
+            .map((s) => s.roleStats.Forward.games + s.roleStats.Goalie.games)
+            .reduce((a, b) => a + b, 0) ||
+          0,
+        losses:
+          ensuredRegion?.player.losses ||
+          playerStats?.playerStats
+            .filter((s) => s.ratingName === 'RankedInitial')
+            .map((s) => s.roleStats.Forward.losses + s.roleStats.Goalie.losses)
+            .reduce((a, b) => a + b, 0) ||
+          0,
+        rank: ensuredRegion?.player.rank || 10_001,
+        rating: ensuredRegion?.player.rating || 0,
+        wins:
+          ensuredRegion?.player.wins ||
+          playerStats?.playerStats
+            .filter((s) => s.ratingName === 'RankedInitial')
+            .map((s) => s.roleStats.Forward.wins + s.roleStats.Goalie.wins)
+            .reduce((a, b) => a + b, 0) ||
+          0,
+        masteryLevel:
+          ensuredRegion?.player.masteryLevel || odysseyPlayer.masteryLevel || 0,
+        createdAt: dayjs().toISOString(),
       },
       where: {
         id: cachedPlayerRatings[0].id,
@@ -346,7 +427,7 @@ export class PlayerResolver {
         data: {
           assists: pcr.assists,
           character: pcr.character,
-          createdAt: dayjs().toDate(),
+          createdAt: dayjs().toISOString(),
           gamemode: pcr.gamemode,
           games: pcr.games,
           knockouts: pcr.knockouts,
@@ -368,7 +449,7 @@ export class PlayerResolver {
         nameplateId: odysseyPlayer.nameplateId,
         socialUrl: odysseyPlayer.socialUrl,
         logoId: odysseyPlayer.logoId,
-        region: ensuredRegion.region,
+        region: ensuredRegion?.region || 'Global',
         titleId: odysseyPlayer.titleId,
       },
       where: {

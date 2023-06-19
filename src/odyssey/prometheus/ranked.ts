@@ -67,6 +67,7 @@ export class PrometheusRankedService {
     ]) {
       try {
         const { players } = await this.getPlayerOnLeaderboard(id, region, 0, 0)
+        console.log('PLAYERS', players, 'region', region)
         if (players.length > 0) {
           return { player: players[0], region: region }
         }
