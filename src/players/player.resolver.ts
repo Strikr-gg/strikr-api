@@ -140,7 +140,8 @@ export class PlayerResolver {
     )
 
     const ignoreUpdates =
-      playerMastery.currentLevelXp === cachedPlayer.currentXp
+      playerMastery.currentLevelXp === cachedPlayer.currentXp &&
+      playerMastery.currentLevel === cachedPlayerRatings[0]?.masteryLevel
 
     // The odyssey API changed or returned unexpected player data.
     // The data now mismatches the cached player.
@@ -166,11 +167,10 @@ export class PlayerResolver {
         )
       : false
 
-    if (ignoreUpdates && !forceSnapshotCreation) {
+    if (ignoreUpdates) {
       // The player haven't played the game since the last snapshot.
       // We will update the last snapshot's createdAt date to today.
       // This will ensure the player is not updated again until he plays the game.
-      // This will also ensure the player is not updated again until tomorrow.
       cachedPlayerCharacterRatings.forEach(async (pcr) => {
         await this.prisma.playerCharacterRating.update({
           where: {
