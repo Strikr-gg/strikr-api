@@ -140,6 +140,7 @@ export class PlayerResolver {
     )
 
     const ignoreUpdates =
+      cachedPlayer &&
       playerMastery.currentLevelXp === cachedPlayer.currentXp &&
       playerMastery.currentLevel === cachedPlayerRatings[0]?.masteryLevel
 
