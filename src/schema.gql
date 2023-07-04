@@ -44,8 +44,8 @@ type PlayerCharacterMasteryItemObjectType {
 
 type PlayerCharacterMasteryObjectType {
   characterMasteries: [PlayerCharacterMasteryItemObjectType!]!
+  createdAt: String!
   playerId: String!
-  timestamp: String!
 }
 
 input PlayerCharacterRatingInputType {
@@ -93,10 +93,10 @@ input PlayerInputType {
 }
 
 type PlayerMasteryObjectType {
+  createdAt: String!
   currentLevel: Float!
   currentLevelXp: Float!
   playerId: String!
-  timestamp: String!
   totalXp: Float!
   xpToNextLevel: Float!
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
-import prometheusRankedService from 'src/odyssey/prometheus/ranked'
+import { prometheusService } from 'src/odyssey/prometheus/service'
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
@@ -37,10 +37,10 @@ async function populateByBoardOffset(
   ledearboardLogger.debug(
     `Updating leaderboard for ${region} with > Offset:${offset} Step: ${count}`,
   )
-  const leaderboardPlayers = await prometheusRankedService.getLeaderboard(
-    region,
+  const leaderboardPlayers = await prometheusService.ranked.leaderboard.players(
     offset,
     count,
+    undefined,
   )
 
   for (const player of leaderboardPlayers.players) {
@@ -76,15 +76,3 @@ async function populateByBoardOffset(
     await populateByBoardOffset(offset + count, count, region)
   }
 }
-
-prisma.leaderboard
-  .count({
-    where: {
-      region: 'Global',
-    },
-  })
-  .then((count) => {
-    if (count < 9999) {
-      populateByBoardOffset(count, 25, 'Global')
-    }
-  })

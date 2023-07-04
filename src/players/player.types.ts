@@ -4,7 +4,7 @@ import { UserObjectType } from 'src/users/user.types'
 @ObjectType()
 export class PlayerMasteryObjectType {
   @Field()
-  timestamp: string
+  createdAt: string
 
   @Field()
   playerId: string
@@ -49,7 +49,7 @@ export class PlayerCharacterMasteryItemObjectType {
 @ObjectType()
 export class PlayerCharacterMasteryObjectType {
   @Field()
-  timestamp: string
+  createdAt: string
 
   @Field()
   playerId: string

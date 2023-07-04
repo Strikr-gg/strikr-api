@@ -1,178 +1,288 @@
-export namespace ODYSSEY {
+export namespace PROMETHEUS {
   export namespace RAW {
-    export interface Player {
-      username: string
-      playerId: string
-      logoId: string
-      title: string
-      nameplateId: string
-      emoticonId: string
-      titleId: string
-      tags: any[]
-      platformIds: PlatformIds
-      masteryLevel: number
-      organization: Organization
-      rank: number
-      wins: number
-      losses: number
-      games: number
-      topRole: string
-      rating: number
-      mostPlayedCharacters: MostPlayedCharacter[]
-      currentDivisionId: string
-      progressToNext: number
-    }
-
-    export interface PlayerQueryMatch {
-      username: string
-      playerId: string
-      logoId: string
-      title: string
-      nameplateId: string
-      emoticonId: string
-      titleId: string
-      tags: any[]
-      platformIds: PlatformIds
-      masteryLevel: number
-      organization: Organization
-      socialUrl: string
-    }
-
-    export interface MostPlayedCharacter {
-      characterId: string
-      gamesPlayed: number
-    }
-
-    export interface Paging {
-      startRank: number
-      pageSize: number
-      totalItems: number
-    }
-
-    export interface Organization {
-      organizationId: string
-      logoId: string
-      name: string
-    }
-
     export type Regions =
       | 'NorthAmerica'
       | 'SouthAmerica'
-      | 'Europe'
       | 'Asia'
       | 'Oceania'
+      | 'Europe'
+      | 'JapaneseLanguageText'
 
-    export interface Season {
-      id: string
-      name: string
-      description: string
-      startTime: string
-      endTime: string
-      ratingTiers: RatingTier[]
+    export type Content = {
+      assetName: string
+      ownedByDefault: boolean
     }
 
-    export interface RatingTier {
-      tierId: string
-      tierName: string
-      minRating: number
-      band: number
-      iconAssetId: string
-    }
+    export type Role = 'Forward' | 'Goalie'
 
-    export interface PlayerStat {
+    export type Player = {
+      username: string
       playerId: string
-      ratingName: string
-      roleStats: RoleStats
+      logoId: string
+      title: string
+      nameplateId: string
+      emoticonId: string
+      titleId: string
+      tags: string[]
+      platformIds: {
+        [key: string]: unknown
+      }
+      masteryLevel: number
+      organization: {
+        organizationId: string
+        logoId: string
+        name: string
+      }
+      socialUrl: string
     }
 
-    export interface RoleStat {
-      assists: number
-      games: number
-      knockouts: number
-      losses: number
-      mvp: number
-      saves: number
-      scores: number
-      wins: number
-    }
-
-    export interface RoleStats {
-      Forward: RoleStat
-      Goalie: RoleStat
-    }
-
-    export interface CharacterStat {
-      playerId: string
-      characterId: string
-      ratingName: string
-      roleStats: RoleStats
-    }
-
-    export interface PlayerMastery {
-      timestamp: string
-      playerId: string
-      currentLevel: number
-      currentLevelXp: number
-      xpToNextLevel: number
-      totalXp: number
-    }
-
-    export interface PlayerCharacterMastery {
-      characterAssetName: string
-      totalXp: number
-      maxTier: number
-      idxHighestTierCollected: number
-      currentTier: number
-      currentTierXp: number
-      xpToNextTier: number
+    export type Paging = {
+      pageSize: number
+      totalItems: number
     }
   }
 
-  export namespace PROMETHEUS {
-    export interface LeaderboardSearch {
-      players: ODYSSEY.RAW.Player[]
-      paging: Paging
+  export namespace API {
+    export namespace LOGIN {
+      export type Token = PROMETHEUS.RAW.Player & {
+        currentPlatform: string
+        displayNameStatus: string
+        eulaNeeded: boolean
+        tutorialProgress: {
+          timestamp: string
+          isTutorialComplete: boolean
+          screensOpened: string[]
+        }
+        rookieRoadStatus: {
+          complete: boolean
+          active: boolean
+        }
+        matchmakingRegion: PROMETHEUS.RAW.Regions
+        gameLiftRegionUrls: {
+          region: string
+          url: string
+        }
+        jwt: string
+        refreshToken: string
+      }
+    }
+    export namespace CONTENT {
+      export type PowerUps = {
+        powerUps: PROMETHEUS.RAW.Content[]
+      }
+
+      export type Emoticons = {
+        timestamp: string
+        emoticons: PROMETHEUS.RAW.Content[]
+      }
+
+      export type Characters = {
+        characters: PROMETHEUS.RAW.Content[]
+      }
+    }
+    export namespace RANKED {
+      export namespace LEADERBOARD {
+        export type Players = {
+          players: Array<
+            PROMETHEUS.RAW.Player & {
+              rank: number
+              wins: number
+              losses: number
+              games: number
+              topRole: PROMETHEUS.RAW.Role
+              rating: number
+              mostPlayedCharacters: {
+                characterId: string
+                gamesPlayed: number
+              }
+              currentDivistionId: string
+              progressToNext: number
+            }
+          >
+          paging: PROMETHEUS.RAW.Paging & {
+            startRank: number
+          }
+        }
+
+        export type Search = {
+          players: Array<
+            PROMETHEUS.RAW.Player & {
+              rank: number
+              wins: number
+              losses: number
+              games: number
+              topRole: PROMETHEUS.RAW.Role
+              rating: number
+              mostPlayedCharacters: {
+                characterId: string
+                gamesPlayed: number
+              }
+              currentDivistionId: string
+              progressToNext: number
+            }
+          >
+          paging: PROMETHEUS.RAW.Paging & {
+            startRank: number
+          }
+        }
+
+        export type Friends = PROMETHEUS.RAW.Player & {
+          rank: number
+          wins: number
+          losses: number
+          games: number
+          rating: number
+          mostPlayedCharacters: {
+            characterId: string
+            gamesPlayed: number
+          }[]
+          currentDivisionId: string
+          progressToNext: number
+        }
+
+        export type CurrentSeason = {
+          timestamp: string
+          season: {
+            id: string
+            name: string
+            description: string
+            startTime: string
+            endTime: string
+            requireSoloQueueEloThreshold: number
+            ratingTiers: {
+              tierId: string
+              tierName: string
+              minRating: number
+              band: number
+              iconAssetId: string
+            }[]
+          }
+        }
+
+        export type Rating = {
+          timestamp: string
+          rating: number
+        }
+      }
+    }
+    export namespace MASTERY {
+      export type Player = {
+        timestamp: string
+        playerId: string
+        currentLevel: number
+        currentLevelXp: number
+        xpToNextLevel: number
+        totalXp: number
+      }
+
+      export type Character = {
+        timestamp: string
+        playerId: string
+        characterMasteries: {
+          chracterAssetName: string
+          totalXp: number
+          maxTier: number
+          idxHighestTierCollected: number
+          currentTier: number
+          currentTierXp: number
+          xpToNextTier: number
+        }[]
+      }
+    }
+    export namespace PLAYER {
+      export type Characters = {
+        timestamp: string
+        characterAssetName: string[]
+      }
+
+      export type Emoticons = {
+        timestamp: string
+        emoticonAssetIds: string[]
+      }
+
+      export type UsernameQuery = {
+        matches: Array<
+          Pick<
+            PROMETHEUS.RAW.Player,
+            | 'username'
+            | 'playerId'
+            | 'logoId'
+            | 'title'
+            | 'nameplateId'
+            | 'emoticonId'
+            | 'titleId'
+            | 'tags'
+            | 'platformIds'
+            | 'masteryLevel'
+            | 'organization'
+            | 'socialUrl'
+          >
+        >
+      }
     }
 
-    export interface LeaderboardPlayers {
-      players: Player[]
-      paging: ODYSSEY.RAW.Paging
-      specificRegion: string
-    }
+    export namespace STATS {
+      export type Player = {
+        timestamp: string
+        playerId: string
 
-    export interface CurrentSeason {
-      timestamp: string
-      season: ODYSSEY.RAW.Season
-    }
-
-    export interface PlayerStats {
-      timestamp: string
-      playerId: string
-      playerStats: ODYSSEY.RAW.PlayerStat[]
-      characterStats: ODYSSEY.RAW.CharacterStat[]
-    }
-
-    export interface PlayerEmoticons {
-      timestamp: string
-      emoticonAssetIds: string[]
-    }
-
-    export interface PlayerChracters {
-      timestamp: string
-      characterAssetNames: string[]
-    }
-
-    export interface PlayerQuery {
-      matches: ODYSSEY.RAW.PlayerQueryMatch[]
-      paging: ODYSSEY.RAW.Paging
-    }
-
-    export type PlayerMastery = ODYSSEY.RAW.PlayerMastery
-
-    export interface PlayerCharacterMastery {
-      timestamp: string
-      playerId: string
-      characterMasteries: ODYSSEY.RAW.PlayerCharacterMastery[]
+        playerStats: {
+          playerId: string
+          ratingName: 'NormalInitial' | 'RankedInitial' | 'None'
+          roleStats: {
+            Forward: {
+              assists: number
+              games: number
+              knockouts: number
+              losses: number
+              mvp: number
+              saves: number
+              scores: number
+              wins: number
+            }
+            Goalie: {
+              assists: number
+              games: number
+              knockouts: number
+              losses: number
+              mvp: number
+              saves: number
+              scores: number
+              wins: number
+            }
+          }
+        }[]
+        characterStats: {
+          playerId: string
+          characterId: string
+          ratingName: 'NormalInitial' | 'RankedInitial' | 'None'
+          roleStats: {
+            Forward: {
+              assists: number
+              games: number
+              knockouts: number
+              losses: number
+              mvp: number
+              saves: number
+              scores: number
+              wins: number
+            }
+            Goalie: {
+              assists: number
+              games: number
+              knockouts: number
+              losses: number
+              mvp: number
+              saves: number
+              scores: number
+              wins: number
+            }
+          }
+        }[]
+        paging: PROMETHEUS.RAW.Paging & {
+          page: number
+        }
+      }
     }
   }
 }
