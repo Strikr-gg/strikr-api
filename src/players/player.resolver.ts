@@ -126,7 +126,9 @@ export class PlayerResolver {
   ) {
     // We do get the cachedPlayer, but we do not return him by himself because we need to check if he needs to be updated.
     // If he needs to be updated, we will return the updated player based on the cachedPlayerData instead of making multiple odyssey requests.
-    const cachedPlayer = await this.service.getPlayerByName(name.toLowerCase())
+    const cachedPlayer = await this.service.getPlayerByName(
+      decodeURI(name.toLowerCase()),
+    )
     const cachedPlayerRatings = await this.service.getPlayerRatings(
       cachedPlayer?.id,
     )
@@ -137,7 +139,9 @@ export class PlayerResolver {
       return cachedPlayer
     }
 
-    const odysseyPlayer = await prometheusService.player.usernameQuery(name)
+    const odysseyPlayer = await prometheusService.player.usernameQuery(
+      decodeURI(name),
+    )
 
     const playerMastery = await prometheusService.mastery.player(
       cachedPlayer?.id || odysseyPlayer.playerId,
