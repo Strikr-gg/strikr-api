@@ -53,12 +53,44 @@ export class PlayerResolver {
     })
   }
 
-  @Query(() => [PlayerObjectType])
-  async getPlayers() {
-    return await this.prisma.player.findMany()
+  @Query(() => [PlayerObjectType], {
+    description:
+      'Returns registered players from strikr. This means that got searched at least once in history.',
+  })
+  async getPlayers(
+    @Args('region', {
+      type: () => String,
+      nullable: true,
+      description: 'Filter by region',
+    })
+    region: string,
+    @Args('page', {
+      type: () => Number,
+      nullable: true,
+      description: 'Page number',
+    })
+    page: number,
+    @Args('limit', {
+      type: () => Number,
+      nullable: true,
+      description: 'Limit of players per page (max of 25, defaults to 10)',
+    })
+    limit = 10,
+  ) {
+    if (limit > 25) {
+      limit = 25
+    }
+    return await this.prisma.player.findMany({
+      ...(region ? { where: { region } } : {}),
+      take: limit,
+      skip: page ? (page - 1) * limit : 0,
+    })
   }
 
-  @Query(() => PlayerObjectType)
+  @Query(() => PlayerObjectType, {
+    description:
+      'Returns the playe based on its provided name. Creates a new player if none is found.',
+  })
   async getPlayerByName(
     @Args('name', { type: () => String, nullable: false })
     name: string,
@@ -72,7 +104,7 @@ export class PlayerResolver {
 
   @Query(() => PlayerObjectType, {
     description:
-      'If the player already exists on database, calculates the ΔT of the latest snapshot and the current time. If the ΔT is from "yesterday",  strikr will create a new snapshot for "Today". ensure only one sample is stored per day.\nIf the player does not exists on database, it will create a new player allong with its ratings.',
+      'If the player already exists on database, calculates the ΔT of the latest snapshot and the current time. If the ΔT is from "yesterday",  strikr will create a new snapshot for "Today" otherwise it will just update today\'s snapshot. (ratings: limited to last 7) (CharacterRatings: limited to last 1 per character) WARNING: THIS ENDPOINT WILL BE PROTECTED UNDER TOKEN IN THE NEAR FUTURE, BUT FOR NOW IT IS OPEN TO THE PUBLIC - I WOULD BE GLAD TO HAND OUT KEYS WHEN THE AUTHENTICATION ROLLS OUT!.',
   })
   async ensurePlayer(
     @Args('name', { type: () => String, nullable: false }) name: string,
@@ -81,7 +113,14 @@ export class PlayerResolver {
       type: () => Boolean,
       nullable: true,
       description:
-        'If refresh is not set, or set to false we will return the cached Player directly. Making this function work exactly like getPlayerByName / getPlayer but with the extra functionality of creating the player if it is missing on database',
+        'If refresh is not set, or set to false we will return the cached Player directly. Making this function work exactly like getPlayerByName / getPlayer. Making refresh FALSE results in the same behavior as getPlayerByName but with less data since ensurePlayer returns only last 7 snapshots of rating & character Ratings. TL;DR: You want a lot of data? use getPlayerByName, you want small sample of data or need to update the player data? use ensurePlayer with refresh set to true. Do you want to display the same sample of data but having the latest data is not priority? use ensurePlayer with refresh set to false.',
+    })
+    @Args('region', {
+      type: () => String,
+      nullable: true,
+      description:
+        // eslint-disable-next-line prettier/prettier
+        'Region overrider for the player. Strikr seeks for players on all regions and returns the first result on the first region it finds. Some players plays or played at more than one region. Providing the region overrider will force strikr to only look into the provided region. Giving overrider will make the player region be changed to the overriden one (unless the player can\'t be found on said region leaderboard)',
     })
     refresh: boolean,
   ) {
@@ -167,7 +206,7 @@ export class PlayerResolver {
         },
       })
     }
-    console.log('Ensuring Region')
+
     const ensuredRegion =
       await prometheusService.ranked.leaderboard.ensureRegion(
         odysseyPlayer.playerId,
@@ -177,7 +216,6 @@ export class PlayerResolver {
     const playerStats = await prometheusService.stats.player(
       odysseyPlayer.playerId,
     )
-    console.log('Player Stats', playerStats)
 
     if (!cachedPlayer) {
       const createdPlayer = await this.prisma.player.create({
@@ -428,7 +466,10 @@ export class PlayerResolver {
     })
   }
 
-  @Query(() => PilotAutocompleteObjectType)
+  @Query(() => PilotAutocompleteObjectType, {
+    description:
+      'Get a list of pilots for autocomplete. This searchs directly to the search engine instead of database.  This will be used for the search bar (BUG NOTICE: This endpoint relies on MeilliSearch which is not completely implemented yet. it should returns in up to 2ms with max amount on query) but might fail to returns at that time or return anything in reality).',
+  })
   async getPilotsAutoComplete() {
     return await this.prisma.player.findMany({
       select: {
@@ -442,7 +483,9 @@ export class PlayerResolver {
 
   @UseGuards(StrikrGuard)
   @SetMetadata('staffOnly', true)
-  @Mutation(() => PlayerObjectType)
+  @Mutation(() => PlayerObjectType, {
+    description: 'Create a new player [Requires StrikrToken @ Admin level]',
+  })
   async createPlayer(
     @Args('PlayerCreateInput', {
       type: () => PlayerInputType,
@@ -457,7 +500,11 @@ export class PlayerResolver {
     })
   }
 
-  @ResolveField(() => PlayerMasteryObjectType, { nullable: true })
+  @ResolveField(() => PlayerMasteryObjectType, {
+    nullable: true,
+    description:
+      'Queries the player mastery from game data. We do not store snapshots of leveling [GAME PROXY WARNING: Endpoints proxying requests to game data will be using your IP. If you get rate limited there it is imposed by Odyssey itself and not by Strikr.]',
+  })
   async mastery(@Parent() player: PlayerObjectType) {
     try {
       return await prometheusService.mastery.player(player.id)
@@ -466,7 +513,11 @@ export class PlayerResolver {
     }
   }
 
-  @ResolveField(() => PlayerCharacterMasteryObjectType, { nullable: true })
+  @ResolveField(() => PlayerCharacterMasteryObjectType, {
+    nullable: true,
+    description:
+      'Returns character masteries from player directly from game data. we do not store leveling snapshots at all. Contact Nodge if you need masteries snapshots [GAME PROXY WARNING: Endpoints proxying requests to game data will be using your IP. If you get rate limited there it is imposed by Odyssey itself and not by Strikr.]',
+  })
   async characterMastery(@Parent() player: PlayerObjectType) {
     try {
       return await prometheusService.mastery.character(player.id)
@@ -484,7 +535,11 @@ export class PlayerResolver {
     })
   }
 
-  @ResolveField(() => PlayerRatingObjectType, { nullable: true })
+  @ResolveField(() => PlayerRatingObjectType, {
+    nullable: true,
+    description:
+      'Hard-coded to 30 snapshots. If you need mroe than that please contact Nodge for a solution.',
+  })
   async ratings(@Parent() player: PlayerObjectType) {
     return await this.prisma.player
       .findUnique({
@@ -493,11 +548,15 @@ export class PlayerResolver {
         },
       })
       .ratings({
-        take: 14,
+        take: 30,
       })
   }
 
-  @ResolveField(() => PlayerCharacterRatingObjectType, { nullable: true })
+  @ResolveField(() => PlayerCharacterRatingObjectType, {
+    nullable: true,
+    description:
+      'Hardcoded limit of 300. If you need more than that please contact Nodge for a solution.',
+  })
   async characterRatings(@Parent() player: PlayerObjectType) {
     return await this.prisma.player
       .findUnique({
@@ -509,7 +568,7 @@ export class PlayerResolver {
         orderBy: {
           createdAt: 'desc',
         },
-        take: 136,
+        take: 300,
       })
   }
 }

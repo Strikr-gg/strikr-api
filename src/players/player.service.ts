@@ -25,9 +25,9 @@ export class PlayerService {
     })
   }
 
-  getPlayerRatings(id: string) {
+  getPlayerRatings(id: string, take = 7) {
     return this.prisma.playerRating.findMany({
-      take: 2,
+      take,
       orderBy: {
         createdAt: 'desc',
       },
@@ -37,7 +37,7 @@ export class PlayerService {
     })
   }
 
-  getLatestCharacterRatings(playerId: string) {
+  getLatestCharacterRatings(playerId: string, take = 57) {
     if (!playerId) {
       return
     }
@@ -50,7 +50,7 @@ export class PlayerService {
         createdAt: 'desc',
       },
       distinct: ['character', 'gamemode'],
-      take: 50, // NOTE: Change this to config
+      take,
     })
   }
 }
