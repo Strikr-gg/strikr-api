@@ -1,5 +1,4 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql'
-import { leaderboardRegions } from 'src/leaderboard/leaderboard.types'
 import { UserObjectType } from 'src/users/user.types'
 
 @ObjectType()
@@ -100,8 +99,8 @@ export class PlayerObjectType {
   @Field({ nullable: true })
   updatedAt?: Date
 
-  @Field(() => leaderboardRegions, { nullable: false })
-  region: leaderboardRegions
+  @Field(() => String, { nullable: false })
+  region: string
 
   @Field(() => PlayerMasteryObjectType, { nullable: true })
   mastery: PlayerMasteryObjectType

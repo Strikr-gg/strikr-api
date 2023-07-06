@@ -112,7 +112,7 @@ type PlayerObjectType {
   mastery: PlayerMasteryObjectType
   nameplateId: String
   ratings: [PlayerRatingObjectType!]
-  region: leaderboardRegions!
+  region: String!
   tags: [String!]
   titleId: String
   updatedAt: DateTime
@@ -233,15 +233,4 @@ type leaderboardPlayerItem {
   topRole: String!
   username: String!
   wins: Float!
-}
-
-"""The available regions for the game leaderboard."""
-enum leaderboardRegions {
-  Asia
-  Europe
-  Global
-  JapaneseLanguageText
-  NorthAmerica
-  Oceania
-  SouthAmerica
 }
