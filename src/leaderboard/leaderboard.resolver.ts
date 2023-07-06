@@ -84,4 +84,17 @@ export class LeaderboardResolver {
 
     return result
   }
+
+  @Query(() => [String])
+  async getLeaderboardRegions() {
+    return [
+      'NorthAmerica',
+      'Europe',
+      'Asia',
+      'SouthAmerica',
+      'Oceania',
+      'JapaneseLanguageText',
+      'Global',
+    ]
+  }
 }
