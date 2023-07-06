@@ -431,27 +431,40 @@ export class PlayerResolver {
       },
     })
 
-    cachedPlayerCharacterRatings.forEach(async (pcr) => {
-      await this.prisma.playerCharacterRating.update({
-        where: {
-          id: pcr.id,
-        },
-        data: {
-          assists: pcr.assists,
-          character: pcr.character,
-          createdAt: dayjs().toISOString(),
-          gamemode: pcr.gamemode,
-          games: pcr.games,
-          knockouts: pcr.knockouts,
-          mvp: pcr.mvp,
-          losses: pcr.losses,
-          wins: pcr.wins,
-          saves: pcr.saves,
-          role: pcr.role,
-          scores: pcr.scores,
-        },
-      })
-    })
+    for (const pcr of cachedPlayerCharacterRatings) {
+      if (playerStats) {
+        const chracterStat = playerStats.characterStats.find(
+          (char) =>
+            char.ratingName === pcr.gamemode &&
+            char.characterId === pcr.character,
+        )
+        if (!chracterStat) {
+          break
+        }
+
+        const gamemodeCharacterStat =
+          pcr.role === 'Forward'
+            ? chracterStat.roleStats.Forward
+            : chracterStat.roleStats.Goalie
+
+        await this.prisma.playerCharacterRating.update({
+          where: {
+            id: pcr.id,
+          },
+          data: {
+            assists: gamemodeCharacterStat.assists,
+            createdAt: dayjs().toISOString(),
+            games: gamemodeCharacterStat.games,
+            knockouts: gamemodeCharacterStat.knockouts,
+            mvp: gamemodeCharacterStat.mvp,
+            losses: gamemodeCharacterStat.losses,
+            wins: gamemodeCharacterStat.wins,
+            saves: gamemodeCharacterStat.saves,
+            scores: gamemodeCharacterStat.scores,
+          },
+        })
+      }
+    }
 
     return await this.prisma.player.update({
       data: {

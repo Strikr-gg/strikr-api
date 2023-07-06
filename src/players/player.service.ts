@@ -37,7 +37,7 @@ export class PlayerService {
     })
   }
 
-  getLatestCharacterRatings(playerId: string, take = 57) {
+  getLatestCharacterRatings(playerId: string, take = 300) {
     if (!playerId) {
       return
     }
