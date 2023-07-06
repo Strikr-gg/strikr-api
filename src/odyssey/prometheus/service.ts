@@ -29,6 +29,7 @@ export default class PrometheusService {
       },
       async (error) => {
         console.log('error')
+        console.error(error)
         if (
           error?.response?.status === 401 ||
           error?.response?.status === 403
@@ -82,7 +83,7 @@ export default class PrometheusService {
   public ranked = {
     leaderboard: {
       players: async (
-        startRank = 1,
+        startRank = 0,
         pageSize = 25,
         region?: PROMETHEUS.RAW.Regions,
       ) => {
@@ -275,6 +276,8 @@ export default class PrometheusService {
             },
           },
         )
+      console.log('Username query:', username, data)
+
       const matchingPlayer = data.matches.find(
         (player) => player.username.toLowerCase() === username.toLowerCase(),
       )

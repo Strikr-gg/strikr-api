@@ -112,7 +112,7 @@ type PlayerObjectType {
   mastery: PlayerMasteryObjectType
   nameplateId: String
   ratings: [PlayerRatingObjectType!]
-  region: String!
+  region: leaderboardRegions!
   tags: [String!]
   titleId: String
   updatedAt: DateTime
@@ -151,6 +151,30 @@ type Query {
     region: String
   ): PlayerObjectType!
 
+  """Returns the whole snapshot of the leaderboard players."""
+  getLeaderboard(
+    """
+    Defines an object to use as sorter (Defaults to rank, accepts any numeric value from the leaderboardPlayerItem type)
+    """
+    filterBy: leaderboardFilters
+
+    """Defines the limit of player per request (Defaults to 100, max of 1000)"""
+    limit: Float
+
+    """
+    Defines the order of the leaderboard. Can be "asc" or "desc" (Defaults to asc)
+    """
+    order: String
+
+    """Defines the page of the leaderboard (Defaults to 0)"""
+    page: Float
+
+    """
+    The desired raw region id. Regions can be obtained with getLeadeboardRegions (Defaults to Global)
+    """
+    region: String
+  ): [leaderboardPlayerItem!]!
+
   """
   Get a list of pilots for autocomplete. This searchs directly to the search engine instead of database.  This will be used for the search bar (BUG NOTICE: This endpoint relies on MeilliSearch which is not completely implemented yet. it should returns in up to 2ms with max amount on query) but might fail to returns at that time or return anything in reality).
   """
@@ -183,4 +207,41 @@ type UserObjectType {
   isStaff: Boolean!
   player: PlayerObjectType
   username: String!
+}
+
+"""The available filters for the game leaderboard."""
+enum leaderboardFilters {
+  losses
+  masteryLevel
+  rank
+  rating
+  toprole
+  wins
+}
+
+type leaderboardPlayerItem {
+  createdAt: String!
+  emoticonId: String
+  losses: Float!
+  playerId: String!
+  rank: Float!
+  rating: Float!
+  region: String!
+  socialUrl: String
+  tags: [String!]
+  titleId: String
+  topRole: String!
+  username: String!
+  wins: Float!
+}
+
+"""The available regions for the game leaderboard."""
+enum leaderboardRegions {
+  Asia
+  Europe
+  Global
+  JapaneseLanguageText
+  NorthAmerica
+  Oceania
+  SouthAmerica
 }

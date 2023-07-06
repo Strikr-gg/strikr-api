@@ -11,6 +11,7 @@ import { JwtModule } from '@nestjs/jwt'
 import { PlayerModule } from 'src/players/player.module'
 import { UtilsService } from 'src/utils/utils.service'
 import { UpdateLearderboard } from 'src/cronjobs/leaderboard.cron'
+import { LeaderboardModule } from 'src/leaderboard/leaderboard.module'
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UpdateLearderboard } from 'src/cronjobs/leaderboard.cron'
       },
     }),
     PlayerModule,
+    LeaderboardModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

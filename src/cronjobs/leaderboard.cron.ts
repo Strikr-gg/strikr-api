@@ -6,9 +6,17 @@ const prisma = new PrismaClient()
 
 const ledearboardLogger = new Logger('Leaderboard')
 
+type Regions =
+  | 'Global'
+  | 'NorthAmerica'
+  | 'Europe'
+  | 'Asia'
+  | 'SouthAmerica'
+  | 'Oceania'
+  | 'JapaneseLanguageText'
 @Injectable()
 export class UpdateLearderboard {
-  @Cron('0 */12 * * *')
+  @Cron('0 */6 * * *')
   async handleCron() {
     const updates: Promise<any>[] = []
     for (const region of [
@@ -18,29 +26,24 @@ export class UpdateLearderboard {
       'Asia',
       'SouthAmerica',
       'Oceania',
+      'JapaneseTextLanguage',
     ]) {
-      await prisma.leaderboard.deleteMany({ where: { region } })
-      updates.push(populateByBoardOffset(0, 25, region))
+      // Deleting all current players:
+      updates.push(populateByBoardOffset(0, 25, region as Regions))
     }
-
-    // Deleting all current players:
-
-    Promise.all(updates)
+    await prisma.leaderboard.deleteMany()
+    await Promise.all(updates)
   }
 }
 
-async function populateByBoardOffset(
-  offset = 0,
-  count = 25,
-  region = 'Global',
-) {
+async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
   ledearboardLogger.debug(
     `Updating leaderboard for ${region} with > Offset:${offset} Step: ${count}`,
   )
   const leaderboardPlayers = await prometheusService.ranked.leaderboard.players(
     offset,
     count,
-    undefined,
+    region === 'Global' ? undefined : region,
   )
 
   for (const player of leaderboardPlayers.players) {
