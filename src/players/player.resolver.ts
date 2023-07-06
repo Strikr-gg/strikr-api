@@ -108,13 +108,14 @@ export class PlayerResolver {
   })
   async ensurePlayer(
     @Args('name', { type: () => String, nullable: false }) name: string,
-    // If refresh is not set / set to false, we will return the cached player as is, making this function behaves exactly like getPlayerByName but with the ability to create a new player if none is found.
+
     @Args('refresh', {
       type: () => Boolean,
       nullable: true,
       description:
         'If refresh is not set, or set to false we will return the cached Player directly. Making this function work exactly like getPlayerByName / getPlayer. Making refresh FALSE results in the same behavior as getPlayerByName but with less data since ensurePlayer returns only last 7 snapshots of rating & character Ratings. TL;DR: You want a lot of data? use getPlayerByName, you want small sample of data or need to update the player data? use ensurePlayer with refresh set to true. Do you want to display the same sample of data but having the latest data is not priority? use ensurePlayer with refresh set to false.',
     })
+    refresh: boolean,
     @Args('region', {
       type: () => String,
       nullable: true,
@@ -122,7 +123,7 @@ export class PlayerResolver {
         // eslint-disable-next-line prettier/prettier
         'Region overrider for the player. Strikr seeks for players on all regions and returns the first result on the first region it finds. Some players plays or played at more than one region. Providing the region overrider will force strikr to only look into the provided region. Giving overrider will make the player region be changed to the overriden one (unless the player can\'t be found on said region leaderboard)',
     })
-    refresh: boolean,
+    region: string,
   ) {
     // We do get the cachedPlayer, but we do not return him by himself because we need to check if he needs to be updated.
     // If he needs to be updated, we will return the updated player based on the cachedPlayerData instead of making multiple odyssey requests.
@@ -214,7 +215,7 @@ export class PlayerResolver {
     const ensuredRegion =
       await prometheusService.ranked.leaderboard.ensureRegion(
         odysseyPlayer.playerId,
-        cachedPlayer?.region as PROMETHEUS.RAW.Regions,
+        region || (cachedPlayer?.region as PROMETHEUS.RAW.Regions) || undefined,
       )
 
     const playerStats = await prometheusService.stats.player(
@@ -431,40 +432,41 @@ export class PlayerResolver {
       },
     })
 
-    for (const pcr of cachedPlayerCharacterRatings) {
-      if (playerStats) {
-        const chracterStat = playerStats.characterStats.find(
-          (char) =>
-            char.ratingName === pcr.gamemode &&
-            char.characterId === pcr.character,
-        )
-        if (!chracterStat) {
-          break
-        }
-
-        const gamemodeCharacterStat =
-          pcr.role === 'Forward'
-            ? chracterStat.roleStats.Forward
-            : chracterStat.roleStats.Goalie
-
-        await this.prisma.playerCharacterRating.update({
-          where: {
-            id: pcr.id,
-          },
-          data: {
-            assists: gamemodeCharacterStat.assists,
-            createdAt: dayjs().toISOString(),
-            games: gamemodeCharacterStat.games,
-            knockouts: gamemodeCharacterStat.knockouts,
-            mvp: gamemodeCharacterStat.mvp,
-            losses: gamemodeCharacterStat.losses,
-            wins: gamemodeCharacterStat.wins,
-            saves: gamemodeCharacterStat.saves,
-            scores: gamemodeCharacterStat.scores,
-          },
-        })
+    cachedPlayerCharacterRatings.forEach(async (pcr) => {
+      if (!playerStats) {
+        return
       }
-    }
+      const chracterStat = playerStats.characterStats.find(
+        (char) =>
+          char.ratingName === pcr.gamemode &&
+          char.characterId === pcr.character,
+      )
+      if (!chracterStat) {
+        return
+      }
+
+      const gamemodeCharacterStat =
+        pcr.role === 'Forward'
+          ? chracterStat.roleStats.Forward
+          : chracterStat.roleStats.Goalie
+
+      await this.prisma.playerCharacterRating.update({
+        where: {
+          id: pcr.id,
+        },
+        data: {
+          assists: gamemodeCharacterStat.assists,
+          createdAt: dayjs().toISOString(),
+          games: gamemodeCharacterStat.games,
+          knockouts: gamemodeCharacterStat.knockouts,
+          mvp: gamemodeCharacterStat.mvp,
+          losses: gamemodeCharacterStat.losses,
+          wins: gamemodeCharacterStat.wins,
+          saves: gamemodeCharacterStat.saves,
+          scores: gamemodeCharacterStat.scores,
+        },
+      })
+    })
 
     return await this.prisma.player.update({
       data: {
