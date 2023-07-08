@@ -18,6 +18,8 @@ type Regions =
 export class UpdateLearderboard {
   @Cron('0 */6 * * *')
   async handleCron() {
+    await prisma.leaderboard.deleteMany()
+
     const updates: Promise<any>[] = []
     for (const region of [
       'Global',
@@ -31,7 +33,6 @@ export class UpdateLearderboard {
       // Deleting all current players:
       updates.push(populateByBoardOffset(0, 25, region as Regions))
     }
-    await prisma.leaderboard.deleteMany()
     await Promise.all(updates)
   }
 }
