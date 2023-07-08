@@ -31,8 +31,8 @@ registerEnumType(leaderboardFilters, {
 
 @ObjectType()
 export class leaderboardPlayerItem {
-  @Field(() => String)
-  createdAt: string
+  @Field()
+  createdAt: Date
 
   @Field(() => String)
   playerId: string

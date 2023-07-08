@@ -7,6 +7,24 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+input EsportsTournamentInput {
+  detail: String!
+  image: String
+  name: String!
+  region: String!
+  stream: String!
+  url: String
+}
+
+type EsportsTournamentObjectType {
+  detail: String!
+  image: String
+  name: String!
+  region: String!
+  stream: String!
+  url: String
+}
+
 type GuideObjectType {
   author: UserObjectType!
   authorId: Float!
@@ -22,8 +40,11 @@ type GuideObjectType {
 }
 
 type Mutation {
+  createEsportsTournament(tournamentInput: EsportsTournamentInput!): EsportsTournamentObjectType!
+
   """Create a new player [Requires StrikrToken @ Admin level]"""
   createPlayer(PlayerCreateInput: PlayerInputType!): PlayerObjectType!
+  seedTournament(teamsInput: [TeamInput!]!): [TeamObjectType!]!
 }
 
 type PilotAutocompleteObjectType {
@@ -150,6 +171,13 @@ type Query {
     """
     region: String
   ): PlayerObjectType!
+  getEsportsTournaments(
+    """Amount to return (defaults to 10, max of 25)"""
+    limit: Float
+
+    """Page offset (defaults to 0)"""
+    page: Float
+  ): [EsportsTournamentObjectType!]!
 
   """Returns the whole snapshot of the leaderboard players."""
   getLeaderboard(
@@ -159,7 +187,7 @@ type Query {
     filterBy: leaderboardFilters
 
     """Defines the limit of player per request (Defaults to 100, max of 1000)"""
-    limit: Float
+    limit: Int
 
     """
     Defines the order of the leaderboard. Can be "asc" or "desc" (Defaults to asc)
@@ -167,7 +195,7 @@ type Query {
     order: String
 
     """Defines the page of the leaderboard (Defaults to 0)"""
-    page: Float
+    page: Int
 
     """
     The desired raw region id. Regions can be obtained with getLeadeboardRegions (Defaults to Global)
@@ -202,6 +230,16 @@ type Query {
   ): [PlayerObjectType!]!
 }
 
+input TeamInput {
+  name: String!
+  players: [String!]!
+}
+
+type TeamObjectType {
+  name: String!
+  players: [String!]!
+}
+
 type UserObjectType {
   guides: [GuideObjectType!]
   id: Float!
@@ -221,7 +259,7 @@ enum leaderboardFilters {
 }
 
 type leaderboardPlayerItem {
-  createdAt: String!
+  createdAt: DateTime!
   emoticonId: String
   losses: Float!
   playerId: String!

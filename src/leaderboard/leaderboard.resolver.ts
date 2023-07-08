@@ -5,6 +5,7 @@ import {
   leaderboardRegions,
 } from './leaderboard.types'
 import { PrismaService } from 'src/prisma.service'
+import { filter } from 'rxjs'
 
 @Resolver()
 export class LeaderboardResolver {
@@ -27,7 +28,7 @@ export class LeaderboardResolver {
       description:
         'Defines an object to use as sorter (Defaults to rank, accepts any numeric value from the leaderboardPlayerItem type)',
     })
-    filterBy?: keyof typeof leaderboardFilters,
+    filterBy = leaderboardFilters['rank'],
     @Args('order', {
       type: () => String,
       nullable: true,
@@ -53,10 +54,6 @@ export class LeaderboardResolver {
       order = 'asc'
     }
 
-    if (!filterBy) {
-      filterBy = 'rank'
-    }
-
     if (!region) {
       region = 'Global'
     }
@@ -76,9 +73,9 @@ export class LeaderboardResolver {
     const result = await this.prisma.leaderboard.findMany({
       ...(region ? { where: { region } } : {}),
       orderBy: {
-        [filterBy]: order,
+        [leaderboardFilters[filterBy]]: order,
       },
-      take: limit ? 100 : limit,
+      take: limit ? 50 : limit,
       skip: limit * page,
     })
 
