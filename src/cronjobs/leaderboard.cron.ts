@@ -79,3 +79,14 @@ async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
     await populateByBoardOffset(offset + count, count, region)
   }
 }
+
+;(async () => {
+  await prisma.leaderboard.deleteMany()
+  populateByBoardOffset(0, 25, 'Global')
+  populateByBoardOffset(0, 25, 'NorthAmerica')
+  populateByBoardOffset(0, 25, 'SouthAmerica')
+  populateByBoardOffset(0, 25, 'Europe')
+  populateByBoardOffset(0, 25, 'Asia')
+  populateByBoardOffset(0, 25, 'Oceania')
+  populateByBoardOffset(0, 25, 'JapaneseLanguageText')
+})()
