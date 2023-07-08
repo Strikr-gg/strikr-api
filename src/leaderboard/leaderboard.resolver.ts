@@ -1,4 +1,4 @@
-import { Args, Query, Resolver } from '@nestjs/graphql'
+import { Args, Int, Query, Resolver } from '@nestjs/graphql'
 import {
   leaderboardFilters,
   leaderboardPlayerItem,
@@ -36,14 +36,14 @@ export class LeaderboardResolver {
     })
     order?: string,
     @Args('limit', {
-      type: () => Number,
+      type: () => Int,
       nullable: true,
       description:
         'Defines the limit of player per request (Defaults to 100, max of 1000)',
     })
     limit?: number,
     @Args('page', {
-      type: () => Number,
+      type: () => Int,
       nullable: true,
       description: 'Defines the page of the leaderboard (Defaults to 0)',
     })
