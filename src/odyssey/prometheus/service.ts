@@ -28,8 +28,7 @@ export default class PrometheusService {
         return response
       },
       async (error) => {
-        console.log('error')
-        console.error(error)
+        console.log(error)
         if (
           error?.response?.status === 401 ||
           error?.response?.status === 403
@@ -37,7 +36,6 @@ export default class PrometheusService {
           this.refreshTokens()
           return
         }
-
         return Promise.reject(error)
       },
     )
@@ -45,12 +43,14 @@ export default class PrometheusService {
 
   private async refreshTokens() {
     console.log('Refreshing tokens...')
-    const { data } = await this._client.post<PROMETHEUS.API.LOGIN.Token>(
+    const data = await this._client.post<PROMETHEUS.API.LOGIN.Token>(
       '/v1/login/token',
     )
 
-    this._token = data.jwt
-    this._refreshToken = data.refreshToken
+    console.log(data)
+
+    // this._token = data.jwt
+    // this._refreshToken = data.refreshToken
   }
 
   public content = {
@@ -174,11 +174,13 @@ export default class PrometheusService {
       },
 
       ensureRegion: async (playerId: string, specificRegion?: string) => {
-        console.log('ensureRegion', playerId, specificRegion)
         for (const region of [
           ...(specificRegion
-            ? [specificRegion]
+            ? specificRegion === 'Global'
+              ? [undefined]
+              : [specificRegion]
             : [
+                'Global',
                 'NorthAmerica',
                 'SouthAmerica',
                 'Europe',
@@ -191,16 +193,20 @@ export default class PrometheusService {
             return
           }
           try {
-            console.log('ensureRegion', playerId, region)
+            console.log(`Checking ${region}...`, playerId)
             const { players } = await this.ranked.leaderboard.search(
               playerId,
               0,
               0,
-              region,
+              region === 'Global' ? undefined : region,
             )
+            // If you are below 100 in global, you are most likely wanting to see your regional first.
+            if (region === 'Global' && players[0].rank > 1000) {
+              console.log('Not what the user expects')
+              throw new Error('Not what the use expects')
+            }
 
             if (players.length > 0) {
-              console.log('Found the player on region', region)
               return { player: players[0], region: region }
             }
           } catch {
@@ -276,7 +282,6 @@ export default class PrometheusService {
             },
           },
         )
-      console.log('Username query:', username, data)
 
       const matchingPlayer = data.matches.find(
         (player) => player.username.toLowerCase() === username.toLowerCase(),
