@@ -174,20 +174,20 @@ export default class PrometheusService {
       },
 
       ensureRegion: async (playerId: string, specificRegion?: string) => {
+        console.log('Ensuring region...')
         for (const region of [
-          ...(specificRegion
-            ? specificRegion === 'Global'
-              ? [undefined]
-              : [specificRegion]
-            : [
+          ...(specificRegion === 'Global' || !specificRegion
+            ? [
                 'Global',
                 'NorthAmerica',
                 'SouthAmerica',
                 'Europe',
                 'Asia',
                 'Oceania',
+                'JapaneseLanguageText',
                 undefined,
-              ]),
+              ]
+            : [specificRegion]),
         ]) {
           if (!region) {
             return
@@ -201,9 +201,9 @@ export default class PrometheusService {
               region === 'Global' ? undefined : region,
             )
             // If you are below 100 in global, you are most likely wanting to see your regional first.
-            if (region === 'Global' && players[0].rank > 1000) {
+            if (region === 'Global' && players[0].rank > 100) {
               console.log('Not what the user expects')
-              throw new Error('Not what the use expects')
+              continue
             }
 
             if (players.length > 0) {

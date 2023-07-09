@@ -2,6 +2,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   SetMetadata,
   UseGuards,
 } from '@nestjs/common'
@@ -31,6 +32,7 @@ import { PlayerService } from './player.service'
 import { UtilsService } from 'src/utils/utils.service'
 import { prometheusService } from 'src/odyssey/prometheus/service'
 import { PROMETHEUS } from '@types'
+import { decode } from 'punycode'
 
 @Resolver(() => PlayerObjectType)
 @Injectable()
@@ -125,18 +127,33 @@ export class PlayerResolver {
     })
     region: string,
   ) {
+    const ensureLogger = new Logger('PlayerEnsuring')
+    ensureLogger.debug(
+      `Ensuring for player ${decodeURI(
+        name.toLowerCase(),
+      )} with refresh ${refresh} & region ${region}`,
+    )
     // We do get the cachedPlayer, but we do not return him by himself because we need to check if he needs to be updated.
     // If he needs to be updated, we will return the updated player based on the cachedPlayerData instead of making multiple odyssey requests.
     const cachedPlayer = await this.service.getPlayerByName(
       decodeURI(name.toLowerCase()),
     )
+
+    ensureLogger.debug(
+      `Found Cached player: ${cachedPlayer?.createdAt} (${cachedPlayer?.username})`,
+    )
+
     const cachedPlayerRatings = await this.service.getPlayerRatings(
       cachedPlayer?.id,
     )
+
     const cachedPlayerCharacterRatings =
       await this.service.getLatestCharacterRatings(cachedPlayer?.id)
 
     if (!refresh && cachedPlayer) {
+      ensureLogger.log(
+        'Returning cached playe | Reason: refresh is false with existing cache',
+      )
       return cachedPlayer
     }
 
@@ -153,6 +170,7 @@ export class PlayerResolver {
       playerMastery.currentLevelXp === cachedPlayer.currentXp &&
       playerMastery.currentLevel === cachedPlayerRatings[0]?.masteryLevel
 
+    ensureLogger.debug(`Ignore updates? ${ignoreUpdates} (${name})`)
     // The odyssey API changed or returned unexpected player data.
     // The data now mismatches the cached player.
     // This should never happen, but if it does, we need to know about it.
@@ -176,6 +194,10 @@ export class PlayerResolver {
           dayjs().toISOString(),
         )
       : false
+
+    ensureLogger.debug(
+      `Force snapshot creation? ${forceSnapshotCreation} (${name})`,
+    )
 
     if (ignoreUpdates) {
       // The player haven't played the game since the last snapshot.
@@ -217,7 +239,9 @@ export class PlayerResolver {
         odysseyPlayer.playerId,
         region || (cachedPlayer?.region as PROMETHEUS.RAW.Regions) || undefined,
       )
-
+    ensureLogger.debug(
+      `Ensured region: ${ensuredRegion?.region} (${decodeURI(name)})`,
+    )
     const playerStats = await prometheusService.stats.player(
       odysseyPlayer.playerId,
     )
