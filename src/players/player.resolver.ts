@@ -32,7 +32,6 @@ import { PlayerService } from './player.service'
 import { UtilsService } from 'src/utils/utils.service'
 import { prometheusService } from 'src/odyssey/prometheus/service'
 import { PROMETHEUS } from '@types'
-import { decode } from 'punycode'
 
 @Resolver(() => PlayerObjectType)
 @Injectable()
@@ -152,7 +151,7 @@ export class PlayerResolver {
 
     if (!refresh && cachedPlayer) {
       ensureLogger.log(
-        'Returning cached playe | Reason: refresh is false with existing cache',
+        'Returning cached player | Reason: refresh is false with existing cache',
       )
       return cachedPlayer
     }
@@ -200,6 +199,9 @@ export class PlayerResolver {
     )
 
     if (ignoreUpdates) {
+      ensureLogger.log(
+        'Ignoring updates | Reason: players XP is the same as the cached player (ingoreUpdates = true)',
+      )
       // The player haven't played the game since the last snapshot.
       // We will update the last snapshot's createdAt date to today.
       // This will ensure the player is not updated again until he plays the game.
@@ -246,7 +248,10 @@ export class PlayerResolver {
       odysseyPlayer.playerId,
     )
 
+    ensureLogger.debug(`Obtained player stats (${name})`)
+
     if (!cachedPlayer) {
+      ensureLogger.debug(`Creating new player (${name}) (Did not exist)`)
       const createdPlayer = await this.prisma.player.create({
         data: {
           id: odysseyPlayer.playerId,
@@ -345,6 +350,7 @@ export class PlayerResolver {
     }
 
     if (forceSnapshotCreation) {
+      ensureLogger.debug(`Creating new snapshot for player (${name}) (Forced)`)
       const odysseyPlayerMastery = await prometheusService.mastery.player(
         odysseyPlayer.playerId,
       )
@@ -381,6 +387,9 @@ export class PlayerResolver {
       })
 
       if (playerStats && playerStats.playerStats) {
+        ensureLogger.debug(
+          `Creating new player stats for player (${name}) (Forced)`,
+        )
         await this.prisma.playerCharacterRating.createMany({
           data: [
             ...playerStats.characterStats.map((cs) => {
@@ -458,21 +467,29 @@ export class PlayerResolver {
 
     cachedPlayerCharacterRatings.forEach(async (pcr) => {
       if (!playerStats) {
+        ensureLogger.error('No player stats found')
         return
       }
-      const chracterStat = playerStats.characterStats.find(
+      const characterStat = playerStats.characterStats.find(
         (char) =>
           char.ratingName === pcr.gamemode &&
           char.characterId === pcr.character,
       )
-      if (!chracterStat) {
+      if (!characterStat) {
+        ensureLogger.error(
+          `Couldn't find character stat for ${pcr.character} in ${pcr.gamemode} for player ${name}`,
+        )
         return
       }
 
       const gamemodeCharacterStat =
         pcr.role === 'Forward'
-          ? chracterStat.roleStats.Forward
-          : chracterStat.roleStats.Goalie
+          ? characterStat.roleStats.Forward
+          : characterStat.roleStats.Goalie
+
+      ensureLogger.debug(
+        `Updating player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
+      )
 
       await this.prisma.playerCharacterRating.update({
         where: {
