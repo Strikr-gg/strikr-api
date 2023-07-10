@@ -160,6 +160,13 @@ export class PlayerResolver {
       decodeURI(name),
     )
 
+    if (!odysseyPlayer) {
+      throw new HttpException(
+        'Player not found on odyssey. Please contact an administrator.',
+        HttpStatus.NOT_FOUND,
+      )
+    }
+
     const playerMastery = await prometheusService.mastery.player(
       cachedPlayer?.id || odysseyPlayer.playerId,
     )
@@ -490,12 +497,18 @@ export class PlayerResolver {
       ensureLogger.debug(
         `Deleting previous player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
       )
-
-      await this.prisma.playerCharacterRating.delete({
-        where: {
-          id: pcr.id,
-        },
-      })
+      try {
+        await this.prisma.playerCharacterRating.delete({
+          where: {
+            id: pcr.id,
+          },
+        })
+      } catch (e) {
+        ensureLogger.error(
+          `Error deleting previous player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
+        )
+        console.error(e)
+      }
     })
 
     for (const characterStat of playerStats.characterStats) {
