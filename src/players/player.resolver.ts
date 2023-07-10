@@ -142,19 +142,19 @@ export class PlayerResolver {
       `Found Cached player: ${cachedPlayer?.createdAt} (${cachedPlayer?.username})`,
     )
 
-    const cachedPlayerRatings = await this.service.getPlayerRatings(
-      cachedPlayer?.id,
-    )
-
-    const cachedPlayerCharacterRatings =
-      await this.service.getLatestCharacterRatings(cachedPlayer?.id)
-
     if (!refresh && cachedPlayer) {
       ensureLogger.log(
         'Returning cached player | Reason: refresh is false with existing cache',
       )
       return cachedPlayer
     }
+
+    const cachedPlayerRatings = await this.service.getPlayerRatings(
+      cachedPlayer?.id,
+    )
+
+    const cachedPlayerCharacterRatings =
+      await this.service.getLatestCharacterRatings(cachedPlayer?.id)
 
     const odysseyPlayer = await prometheusService.player.usernameQuery(
       decodeURI(name),
@@ -488,26 +488,56 @@ export class PlayerResolver {
           : characterStat.roleStats.Goalie
 
       ensureLogger.debug(
-        `Updating player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
+        `Deleting previous player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
       )
 
-      await this.prisma.playerCharacterRating.update({
+      await this.prisma.playerCharacterRating.delete({
         where: {
           id: pcr.id,
         },
-        data: {
-          assists: gamemodeCharacterStat.assists,
-          createdAt: dayjs().toISOString(),
-          games: gamemodeCharacterStat.games,
-          knockouts: gamemodeCharacterStat.knockouts,
-          mvp: gamemodeCharacterStat.mvp,
-          losses: gamemodeCharacterStat.losses,
-          wins: gamemodeCharacterStat.wins,
-          saves: gamemodeCharacterStat.saves,
-          scores: gamemodeCharacterStat.scores,
-        },
       })
     })
+
+    for (const characterStat of playerStats.characterStats) {
+      ensureLogger.debug(
+        `Creating new player character rating for (${characterStat.characterId} in ${characterStat.ratingName}) for player ${name}`,
+      )
+
+      await this.prisma.playerCharacterRating.createMany({
+        data: [
+          {
+            createdAt: dayjs().toISOString(),
+            games: characterStat.roleStats.Forward.games,
+            losses: characterStat.roleStats.Forward.losses,
+            assists: characterStat.roleStats.Forward.assists,
+            character: characterStat.characterId,
+            gamemode: characterStat.ratingName as Gamemode,
+            knockouts: characterStat.roleStats.Forward.knockouts,
+            mvp: characterStat.roleStats.Forward.mvp,
+            role: 'Forward',
+            saves: characterStat.roleStats.Forward.saves,
+            scores: characterStat.roleStats.Forward.scores,
+            wins: characterStat.roleStats.Forward.wins,
+            playerId: odysseyPlayer.playerId,
+          },
+          {
+            createdAt: dayjs().toISOString(),
+            games: characterStat.roleStats.Goalie.games,
+            losses: characterStat.roleStats.Goalie.losses,
+            assists: characterStat.roleStats.Goalie.assists,
+            character: characterStat.characterId,
+            gamemode: characterStat.ratingName as Gamemode,
+            knockouts: characterStat.roleStats.Goalie.knockouts,
+            mvp: characterStat.roleStats.Goalie.mvp,
+            role: 'Goalie',
+            saves: characterStat.roleStats.Goalie.saves,
+            scores: characterStat.roleStats.Goalie.scores,
+            wins: characterStat.roleStats.Goalie.wins,
+            playerId: odysseyPlayer.playerId,
+          },
+        ],
+      })
+    }
 
     return await this.prisma.player.update({
       data: {
