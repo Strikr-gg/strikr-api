@@ -257,10 +257,25 @@ export class PlayerResolver {
 
     ensureLogger.debug(`Obtained player stats (${name})`)
 
+    if (!cachedPlayer && !odysseyPlayer) {
+      throw new HttpException(
+        'Player not found on game. Please contact an administrator.',
+        HttpStatus.NOT_FOUND,
+      )
+    }
+
     if (!cachedPlayer) {
-      ensureLogger.debug(`Creating new player (${name}) (Did not exist)`)
-      const createdPlayer = await this.prisma.player.create({
-        data: {
+      ensureLogger.debug(
+        `Creating new player (${name}) (Did not exist) (Updates nickanme if changed)`,
+      )
+      const createdPlayer = await this.prisma.player.upsert({
+        where: {
+          id: odysseyPlayer.playerId,
+        },
+        update: {
+          username: odysseyPlayer.username.toLocaleLowerCase(),
+        },
+        create: {
           id: odysseyPlayer.playerId,
           username: odysseyPlayer.username.toLocaleLowerCase(),
           region: ensuredRegion?.region || 'Global',
