@@ -519,6 +519,7 @@ export class PlayerResolver {
         logoId: odysseyPlayer.logoId,
         region: ensuredRegion?.region || 'Global',
         titleId: odysseyPlayer.titleId,
+        updatedAt: dayjs().toISOString(),
       },
       where: {
         id: odysseyPlayer.playerId,
