@@ -234,7 +234,7 @@ export default class PrometheusService {
 
     character: async (playerId: string) => {
       const { data } = await this._client.get<PROMETHEUS.API.MASTERY.Character>(
-        `v1/mastery/${playerId}/character`,
+        `v1/mastery/${playerId}/characters`,
       )
 
       return data
@@ -242,7 +242,7 @@ export default class PrometheusService {
 
     characterV2: async (playerId: string) => {
       const { data } = await this._client.get<PROMETHEUS.API.MASTERY.Character>(
-        `v2/mastery/${playerId}/character`,
+        `v2/mastery/${playerId}/characters`,
       )
 
       return data
