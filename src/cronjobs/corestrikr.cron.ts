@@ -198,7 +198,6 @@ export async function fetchFromCorestrike() {
 
         corestrikrLogger.debug(
           `Player ${player.username} : Created ${ratingsInsertion.length} ratings.`,
-          ratingsInsertion,
         )
         // Loop through the timestamps.
       } catch (e) {
