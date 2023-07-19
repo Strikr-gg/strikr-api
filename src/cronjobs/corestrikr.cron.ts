@@ -179,7 +179,6 @@ export async function fetchFromCorestrike() {
           )
         ) {
           corestrikrLogger.debug(`Player ${player.username} has NO history.`)
-          corestrikrLogger.debug(playerInCorestrike.rankedStats.lp_history[0])
           continue
         }
 
