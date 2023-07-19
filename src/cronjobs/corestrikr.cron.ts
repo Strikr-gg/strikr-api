@@ -76,11 +76,11 @@ export interface Goalies {
 }
 
 const Regions = [
-  'Global',
+  // 'Global',
+  'SouthAmerica',
   'NorthAmerica',
   'Europe',
   'Asia',
-  'SouthAmerica',
   'Oceania',
   'JapaneseLanguageText',
 ]
