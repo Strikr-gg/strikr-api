@@ -11,7 +11,9 @@ import { JwtModule } from '@nestjs/jwt'
 import { PlayerModule } from 'src/players/player.module'
 import { UtilsService } from 'src/utils/utils.service'
 import { UpdateLearderboard } from 'src/cronjobs/leaderboard.cron'
+import { FetchCorestrike } from 'src/cronjobs/corestrikr.cron'
 import { LeaderboardModule } from 'src/leaderboard/leaderboard.module'
+import { EsportsModule } from 'src/esports/esports.module'
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { LeaderboardModule } from 'src/leaderboard/leaderboard.module'
       playground: true,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
+      allowBatchedHttpRequests: true,
     }),
     JwtModule.register({
       global: true,
@@ -31,6 +34,7 @@ import { LeaderboardModule } from 'src/leaderboard/leaderboard.module'
     }),
     PlayerModule,
     LeaderboardModule,
+    EsportsModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
@@ -40,6 +44,7 @@ import { LeaderboardModule } from 'src/leaderboard/leaderboard.module'
     UtilsService,
     AuthService,
     UpdateLearderboard,
+    FetchCorestrike,
     // GuideResolver,
     // UserResolver,
     // PlayerResolver,

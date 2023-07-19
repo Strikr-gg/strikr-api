@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { PROMETHEUS } from '@types'
 import axios, { AxiosInstance } from 'axios'
 
@@ -5,7 +6,7 @@ export default class PrometheusService {
   private _client: AxiosInstance
   private _token = process.env.ODYSSEY_TOKEN
   private _refreshToken = process.env.ODYSSEY_REFRESH_TOKEN
-
+  private _logger = new Logger('PrometheusService')
   constructor() {
     this._client = axios.create({
       baseURL: process.env.ODYSSEY_URL,
@@ -28,7 +29,13 @@ export default class PrometheusService {
         return response
       },
       async (error) => {
-        console.log(error)
+        this._logger.debug(
+          `Error on request 
+    | rs: ${error?.response?.status || '?'}
+    | ep: ${error?.config?.baseUrl}${error?.config?.url}
+    | m: ${error?.response?.data?.message || '?'}
+    `,
+        )
         if (
           error?.response?.status === 401 ||
           error?.response?.status === 403
@@ -42,15 +49,17 @@ export default class PrometheusService {
   }
 
   private async refreshTokens() {
-    console.log('Refreshing tokens...')
-    const data = await this._client.post<PROMETHEUS.API.LOGIN.Token>(
+    this._logger.log('Refreshing odyssy tokens')
+    const { data } = await this._client.post<PROMETHEUS.API.LOGIN.Token>(
       '/v1/login/token',
     )
 
-    console.log(data)
+    // console.log(data)
+    if (!data.jwt) {
+      return
+    }
 
-    // this._token = data.jwt
-    // this._refreshToken = data.refreshToken
+    this._logger.log('Tokens refreshed, saving new tokens')
   }
 
   public content = {

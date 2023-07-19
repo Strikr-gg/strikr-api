@@ -93,7 +93,7 @@ export class PlayerResolver {
       'Returns the playe based on its provided name. Creates a new player if none is found.',
   })
   async getPlayerByName(
-    @Args('name', { type: () => String, nullable: false })
+    @Args('name', { type: () => String, nullable: true })
     name: string,
   ) {
     return await this.prisma.player.findUnique({
@@ -114,7 +114,7 @@ export class PlayerResolver {
       type: () => Boolean,
       nullable: true,
       description:
-        'If refresh is not set, or set to false we will return the cached Player directly. Making this function work exactly like getPlayerByName / getPlayer. Making refresh FALSE results in the same behavior as getPlayerByName but with less data since ensurePlayer returns only last 7 snapshots of rating & character Ratings. TL;DR: You want a lot of data? use getPlayerByName, you want small sample of data or need to update the player data? use ensurePlayer with refresh set to true. Do you want to display the same sample of data but having the latest data is not priority? use ensurePlayer with refresh set to false.',
+        'If refresh is not set, or set to false we will return the cached Player directly ensurePlayer returns only last 7 snapshots of rating & character Ratings. TL;DR: You want a lot of data? use getPlayerRatings & getPlayerCharacterRatings, you want small sample of data or need to update the player data? use ensurePlayer with refresh set to true. Do you want to display the same sample of data but having the latest data is not priority but querying WAY FASTER is good for you? use ensurePlayer with refresh set to false. (Even when set to false if a player is not found on database, strikr will create a new player and return it)',
     })
     refresh: boolean,
     @Args('region', {
@@ -134,12 +134,30 @@ export class PlayerResolver {
     )
     // We do get the cachedPlayer, but we do not return him by himself because we need to check if he needs to be updated.
     // If he needs to be updated, we will return the updated player based on the cachedPlayerData instead of making multiple odyssey requests.
-    const cachedPlayer = await this.service.getPlayerByName(
-      decodeURI(name.toLowerCase()),
-    )
+    const cachedPlayer = await this.prisma.player.findUnique({
+      where: {
+        username: decodeURI(name.toLowerCase()),
+      },
+      include: {
+        characterRatings: {
+          take: 300,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        ratings: {
+          take: 7,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    })
 
     ensureLogger.debug(
-      `Found Cached player: ${cachedPlayer?.createdAt} (${cachedPlayer?.username})`,
+      `Found Cached player: ${cachedPlayer?.createdAt} (${decodeURI(
+        cachedPlayer?.username,
+      )})`,
     )
 
     if (!refresh && cachedPlayer) {
@@ -149,12 +167,9 @@ export class PlayerResolver {
       return cachedPlayer
     }
 
-    const cachedPlayerRatings = await this.service.getPlayerRatings(
-      cachedPlayer?.id,
-    )
+    const cachedPlayerRatings = cachedPlayer?.ratings
 
-    const cachedPlayerCharacterRatings =
-      await this.service.getLatestCharacterRatings(cachedPlayer?.id)
+    const cachedPlayerCharacterRatings = cachedPlayer?.characterRatings
 
     const odysseyPlayer = await prometheusService.player.usernameQuery(
       decodeURI(name),
@@ -162,7 +177,7 @@ export class PlayerResolver {
 
     if (!odysseyPlayer) {
       throw new HttpException(
-        'Player not found on odyssey. Please contact an administrator.',
+        'Player not found on odyssey.',
         HttpStatus.NOT_FOUND,
       )
     }
