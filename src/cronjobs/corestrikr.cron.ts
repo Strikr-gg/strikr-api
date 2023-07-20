@@ -77,8 +77,8 @@ export interface Goalies {
 
 const Regions = [
   // 'Global',
-  'SouthAmerica',
   'NorthAmerica',
+  'SouthAmerica',
   'Europe',
   'Asia',
   'Oceania',
@@ -124,7 +124,7 @@ export async function fetchFromCorestrike() {
 
       if (requestCounter === 2) {
         requestCounter = 0
-        await sleep(1000)
+        // await sleep(1000)
       }
 
       try {
@@ -178,7 +178,7 @@ export async function fetchFromCorestrike() {
             dayjs(oldestStrikerData?.[0].createdAt || new Date()),
           )
         ) {
-          corestrikrLogger.debug(`Player ${player.username} has NO history.`)
+          corestrikrLogger.debug(`Player ${player.username} has older data.`)
           continue
         }
 
@@ -191,12 +191,12 @@ export async function fetchFromCorestrike() {
           },
         )
 
-        await prisma.playerRating.createMany({
+        const data = await prisma.playerRating.createMany({
           data: ratingsInsertion,
         })
 
         corestrikrLogger.debug(
-          `Player ${player.username} : Created ${ratingsInsertion.length} ratings.`,
+          `Player ${player.username} : Created ${data.count} ratings.`,
         )
         // Loop through the timestamps.
       } catch (e) {
