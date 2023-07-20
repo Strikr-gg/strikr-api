@@ -92,7 +92,7 @@ function sleep(ms) {
 @Injectable()
 export class FetchCorestrike {
   @Cron('0 */6 * * *', {
-    disabled: false,
+    disabled: true,
     name: 'FetchCorestrike',
   })
   async handleCron() {
@@ -174,9 +174,7 @@ export async function fetchFromCorestrike() {
         playerInCorestrike.rankedStats.lp_history.sort((a, b) => b[0] - a[0])
 
         if (
-          dayjs(playerInCorestrike.rankedStats.lp_history[0][0]).isAfter(
-            dayjs(oldestStrikerData?.[0].createdAt || new Date()),
-          )
+          dayjs().isAfter(dayjs(oldestStrikerData?.[0].createdAt || new Date()))
         ) {
           corestrikrLogger.debug(`Player ${player.username} has older data.`)
           continue
@@ -206,4 +204,4 @@ export async function fetchFromCorestrike() {
   }
 }
 
-fetchFromCorestrike()
+// fetchFromCorestrike()
