@@ -227,20 +227,19 @@ export class PlayerResolver {
       // The player haven't played the game since the last snapshot.
       // We will update the last snapshot's createdAt date to today.
       // This will ensure the player is not updated again until he plays the game.
-      cachedPlayerCharacterRatings.forEach(async (pcr) => {
-        await this.prisma.playerCharacterRating.update({
-          where: {
-            id: pcr.id,
-          },
-          data: {
-            createdAt: dayjs().toISOString(),
-          },
-        })
-      })
 
+      this.prisma.playerCharacterRating.updateMany({
+        where: {
+          createdAt: cachedPlayerCharacterRatings[0].createdAt,
+          playerId: cachedPlayer.id,
+        },
+        data: {
+          createdAt: dayjs().toISOString(),
+        },
+      })
       return this.prisma.player.update({
         data: {
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
           ratings: {
             update: {
               data: {
@@ -502,53 +501,10 @@ export class PlayerResolver {
       },
     })
 
-    cachedPlayerCharacterRatings.forEach(async (pcr) => {
-      if (!playerStats) {
-        ensureLogger.error('No player stats found')
-        return
-      }
-      const characterStat = playerStats.characterStats.find(
-        (char) =>
-          char.ratingName === pcr.gamemode &&
-          char.characterId === pcr.character,
-      )
-      if (!characterStat) {
-        ensureLogger.error(
-          `Couldn't find character stat for ${pcr.character} in ${pcr.gamemode} for player ${name}`,
-        )
-        return
-      }
-
-      const gamemodeCharacterStat =
-        pcr.role === 'Forward'
-          ? characterStat.roleStats.Forward
-          : characterStat.roleStats.Goalie
-
-      ensureLogger.debug(
-        `Deleting previous player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
-      )
-      try {
-        await this.prisma.playerCharacterRating.delete({
-          where: {
-            id: pcr.id,
-          },
-        })
-      } catch (e) {
-        ensureLogger.error(
-          `Error deleting previous player character rating for (${pcr.character} in ${pcr.gamemode}) for player ${name} @ ${pcr.games} -> ${gamemodeCharacterStat.games}`,
-        )
-        console.error(e)
-      }
-    })
-
-    for (const characterStat of playerStats.characterStats) {
-      ensureLogger.debug(
-        `Creating new player character rating for (${characterStat.characterId} in ${characterStat.ratingName}) for player ${name}`,
-      )
-
-      await this.prisma.playerCharacterRating.createMany({
-        data: [
-          {
+    const playerCharacterRatingsInsertionData = playerStats.characterStats.map(
+      (characterStat) => {
+        return {
+          Forward: {
             createdAt: dayjs().toISOString(),
             games: characterStat.roleStats.Forward.games,
             losses: characterStat.roleStats.Forward.losses,
@@ -563,7 +519,7 @@ export class PlayerResolver {
             wins: characterStat.roleStats.Forward.wins,
             playerId: odysseyPlayer.playerId,
           },
-          {
+          Goalie: {
             createdAt: dayjs().toISOString(),
             games: characterStat.roleStats.Goalie.games,
             losses: characterStat.roleStats.Goalie.losses,
@@ -578,9 +534,20 @@ export class PlayerResolver {
             wins: characterStat.roleStats.Goalie.wins,
             playerId: odysseyPlayer.playerId,
           },
-        ],
-      })
-    }
+        }
+      },
+    )
+
+    ensureLogger.debug(
+      `Updating player (${name}) character stats (Total of ${playerCharacterRatingsInsertionData.length} Entries)`,
+    )
+
+    await this.prisma.playerCharacterRating.createMany({
+      data: [
+        ...playerCharacterRatingsInsertionData.map((d) => d.Forward),
+        ...playerCharacterRatingsInsertionData.map((d) => d.Goalie),
+      ],
+    })
 
     return await this.prisma.player.update({
       data: {
