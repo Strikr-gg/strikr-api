@@ -124,7 +124,7 @@ export default class PrometheusService {
               params: {
                 entriesBefore,
                 entriesAfter,
-                specificRegion: region,
+                specificRegion: region === 'Global' ? undefined : region,
               },
             },
           )

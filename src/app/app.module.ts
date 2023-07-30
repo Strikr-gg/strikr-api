@@ -14,6 +14,9 @@ import { UpdateLearderboard } from 'src/cronjobs/leaderboard.cron'
 import { FetchCorestrike } from 'src/cronjobs/corestrikr.cron'
 import { LeaderboardModule } from 'src/leaderboard/leaderboard.module'
 import { EsportsModule } from 'src/esports/esports.module'
+import { ProxyModule } from 'src/proxy/proxy.module'
+import { UserResolver } from 'src/users/user.resolver'
+import { AuthResolver } from 'src/auth/auth.resolver'
 
 @Module({
   imports: [
@@ -36,6 +39,7 @@ import { EsportsModule } from 'src/esports/esports.module'
     LeaderboardModule,
     EsportsModule,
     ScheduleModule.forRoot(),
+    ProxyModule,
   ],
   controllers: [AppController],
   providers: [
@@ -48,7 +52,7 @@ import { EsportsModule } from 'src/esports/esports.module'
     // GuideResolver,
     // UserResolver,
     // PlayerResolver,
-    // AuthResolver,
+    AuthResolver,
   ],
 })
 export class AppModule {}

@@ -2,6 +2,18 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AuthInputType {
+  email: String
+  password: String!
+  username: String
+}
+
+type AuthObjectType {
+  email: String!
+  id: Float!
+  token: String!
+}
+
 type BracketPlayerObjectType {
   playerId: String!
   rank: Int!
@@ -51,6 +63,7 @@ type Mutation {
 
   """Create a new player [Requires StrikrToken @ Admin level]"""
   createPlayer(PlayerCreateInput: PlayerInputType!): PlayerObjectType!
+  login(loginInput: AuthInputType!): AuthObjectType!
   seedTournament(teamsInput: [TeamInput!]!): [[BracketPlayerObjectType!]!]!
 }
 
@@ -235,6 +248,17 @@ type Query {
     """Filter by region"""
     region: String
   ): [PlayerObjectType!]!
+
+  """
+  Use the Strikr service to query data directly from the game. This is a proxy & transformer to the game data and should not be used if your intention is to display player statistics since it does not contain any of the data that is stored in the database, this endpoint wont generate snapshots either. (OBSERVATION: Not processed by StrikrSmartCache) (OBSERVATION: userID and other data gathered exclusively from strikr will be either null or hold default values since theres no database connection being made on this endpoint) (WARNING: This endpoint requires STAFF TOKEN)
+  """
+  proxyPlayer(
+    """The player name to query"""
+    name: String!
+
+    """Filter by region"""
+    region: String
+  ): PlayerObjectType!
 }
 
 input TeamInput {

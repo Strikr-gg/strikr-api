@@ -70,13 +70,13 @@ export class PlayerObjectType {
   username: string
 
   @Field(() => UserObjectType, { nullable: true })
-  user: UserObjectType
+  user?: UserObjectType
 
   @Field(() => [PlayerRatingObjectType], { nullable: true })
-  ratings: PlayerRatingObjectType[]
+  ratings?: PlayerRatingObjectType[]
 
   @Field(() => [PlayerCharacterRatingObjectType], { nullable: true })
-  characterRatings: PlayerCharacterRatingObjectType[]
+  characterRatings?: PlayerCharacterRatingObjectType[]
 
   // @Field(() => [MatchOnPlayerObjectType], { nullable: true })
   // matches: MatchOnPlayerObjectType[]
@@ -103,13 +103,13 @@ export class PlayerObjectType {
   region: string
 
   @Field(() => PlayerMasteryObjectType, { nullable: true })
-  mastery: PlayerMasteryObjectType
+  mastery?: PlayerMasteryObjectType
 
   @Field(() => [String], { nullable: true })
-  tags: string[]
+  tags?: string[]
 
   @Field(() => PlayerCharacterMasteryObjectType, { nullable: true })
-  characterMastery: PlayerCharacterMasteryObjectType
+  characterMastery?: PlayerCharacterMasteryObjectType
 }
 
 @ObjectType()
