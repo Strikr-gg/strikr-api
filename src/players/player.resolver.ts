@@ -260,10 +260,7 @@ export class PlayerResolver {
         },
       })
 
-      return {
-        ...cachedPlayer,
-        ratings: undefined,
-      }
+      return cachedPlayer
     }
 
     const ensuredRegion =
@@ -659,9 +656,10 @@ export class PlayerResolver {
       })
       .ratings({
         take: 30,
+        orderBy: {
+          createdAt: 'desc',
+        },
       })
-
-    console.log('Returning ratings', ratings)
 
     return ratings
   }
