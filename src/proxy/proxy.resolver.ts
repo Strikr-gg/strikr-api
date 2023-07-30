@@ -8,22 +8,22 @@ import { Args, Parent, ResolveField, Resolver, Query } from '@nestjs/graphql'
 import { StrikrGuard } from 'src/auth/auth.guard'
 import { prometheusService } from 'src/odyssey/prometheus/service'
 import {
-  PlayerCharacterRatingObjectType,
-  PlayerMasteryObjectType,
-  PlayerObjectType,
-  PlayerRatingObjectType,
-} from 'src/players/player.types'
+  ProxyPlayerCharacterRatingObjectType,
+  ProxyPlayerMasteryObjectType,
+  ProxyPlayerObjectType,
+  ProxyPlayerRatingObjectType,
+} from './proxy.types'
 
-@Resolver(() => PlayerObjectType)
+@Resolver(() => ProxyPlayerObjectType)
 @Injectable()
-export class PlayerResolver {
+export class ProxyResolver {
   constructor() {
     //@Query(() => PlayerObjectType)
   }
 
   @UseGuards(StrikrGuard)
   @SetMetadata('staffOnly', true)
-  @Query(() => PlayerObjectType, {
+  @Query(() => ProxyPlayerObjectType, {
     description:
       'Use the Strikr service to query data directly from the game. This is a proxy & transformer to the game data and should not be used if your intention is to display player statistics since it does not contain any of the data that is stored in the database, this endpoint wont generate snapshots either. (OBSERVATION: Not processed by StrikrSmartCache) (OBSERVATION: userID and other data gathered exclusively from strikr will be either null or hold default values since theres no database connection being made on this endpoint) (WARNING: This endpoint requires STAFF TOKEN)',
   })
@@ -52,20 +52,20 @@ export class PlayerResolver {
       emoticonId: basePlayerData.emoticonId,
       titleId: basePlayerData.titleId,
       region: region || 'Global',
-    } as PlayerObjectType
+    } as ProxyPlayerObjectType
   }
 
-  @ResolveField(() => PlayerMasteryObjectType)
-  public async mastery(@Parent() player: PlayerObjectType) {
+  @ResolveField(() => ProxyPlayerMasteryObjectType)
+  public async mastery(@Parent() player: ProxyPlayerObjectType) {
     const masteryData = await prometheusService.mastery.player(player.id, 0, 0)
 
     return masteryData
   }
 
-  @ResolveField(() => [PlayerCharacterRatingObjectType])
-  public async characterRatings(@Parent() player: PlayerObjectType) {
+  @ResolveField(() => [ProxyPlayerCharacterRatingObjectType])
+  public async characterRatings(@Parent() player: ProxyPlayerObjectType) {
     const statsQuery = await prometheusService.stats.player(player.id)
-    const characterRatings: PlayerCharacterRatingObjectType[] = []
+    const characterRatings: ProxyPlayerCharacterRatingObjectType[] = []
     statsQuery.characterStats.forEach((cs) => {
       characterRatings.push({
         id: 0,
@@ -106,8 +106,8 @@ export class PlayerResolver {
     return characterRatings
   }
 
-  @ResolveField(() => [PlayerRatingObjectType])
-  public async ratings(@Parent() player: PlayerObjectType) {
+  @ResolveField(() => [ProxyPlayerRatingObjectType])
+  public async proxyRatings(@Parent() player: ProxyPlayerObjectType) {
     try {
       const playerRankedData =
         await prometheusService.ranked.leaderboard.search(

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { PlayerResolver } from './proxy.resolver'
+import { ProxyResolver } from './proxy.resolver'
 @Module({
   controllers: [],
-  providers: [PlayerResolver],
+  providers: [ProxyResolver],
 })
 export class ProxyModule {}

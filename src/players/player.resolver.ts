@@ -146,7 +146,7 @@ export class PlayerResolver {
           },
         },
         ratings: {
-          take: 7,
+          take: 30,
           orderBy: {
             createdAt: 'desc',
           },
@@ -157,14 +157,17 @@ export class PlayerResolver {
     ensureLogger.debug(
       `Found Cached player: ${cachedPlayer?.createdAt} (${decodeURI(
         cachedPlayer?.username,
-      )})`,
+      )}) with ${cachedPlayer.ratings.length} Rating snapshots`,
     )
 
     if (!refresh && cachedPlayer) {
       ensureLogger.log(
         'Returning cached player | Reason: refresh is false with existing cache',
       )
-      return cachedPlayer
+      return {
+        ...cachedPlayer,
+        ratings: null,
+      }
     }
 
     const cachedPlayerRatings = cachedPlayer?.ratings
@@ -237,7 +240,8 @@ export class PlayerResolver {
           createdAt: dayjs().toISOString(),
         },
       })
-      return this.prisma.player.update({
+
+      await this.prisma.player.update({
         data: {
           updatedAt: new Date().toISOString(),
           ratings: {
@@ -255,6 +259,11 @@ export class PlayerResolver {
           id: odysseyPlayer.playerId,
         },
       })
+
+      return {
+        ...cachedPlayer,
+        ratings: undefined,
+      }
     }
 
     const ensuredRegion =
@@ -642,7 +651,7 @@ export class PlayerResolver {
       'Hard-coded to 30 snapshots. If you need mroe than that please contact Nodge for a solution.',
   })
   async ratings(@Parent() player: PlayerObjectType) {
-    return await this.prisma.player
+    const ratings = await this.prisma.player
       .findUnique({
         where: {
           id: player.id,
@@ -651,6 +660,10 @@ export class PlayerResolver {
       .ratings({
         take: 30,
       })
+
+    console.log('Returning ratings', ratings)
+
+    return ratings
   }
 
   @ResolveField(() => PlayerCharacterRatingObjectType, {
