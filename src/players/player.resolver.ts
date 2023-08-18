@@ -157,7 +157,7 @@ export class PlayerResolver {
     ensureLogger.debug(
       `Found Cached player: ${cachedPlayer?.createdAt} (${decodeURI(
         cachedPlayer?.username,
-      )}) with ${cachedPlayer.ratings.length} Rating snapshots`,
+      )}) with ${cachedPlayer?.ratings?.length} Rating snapshots`,
     )
 
     if (!refresh && cachedPlayer) {
