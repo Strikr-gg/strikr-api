@@ -17,7 +17,7 @@ import { EsportsModule } from 'src/esports/esports.module'
 import { ProxyModule } from 'src/proxy/proxy.module'
 import { UserResolver } from 'src/users/user.resolver'
 import { AuthResolver } from 'src/auth/auth.resolver'
-
+import { ApolloServerErrorCode } from '@apollo/server/errors'
 @Module({
   imports: [
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -27,6 +27,7 @@ import { AuthResolver } from 'src/auth/auth.resolver'
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
       allowBatchedHttpRequests: true,
+      includeStacktraceInErrorResponses: false,
     }),
     JwtModule.register({
       global: true,
@@ -50,7 +51,7 @@ import { AuthResolver } from 'src/auth/auth.resolver'
     UpdateLearderboard,
     FetchCorestrike,
     // GuideResolver,
-    // UserResolver,
+    UserResolver,
     // PlayerResolver,
     AuthResolver,
   ],
