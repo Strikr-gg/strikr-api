@@ -28,6 +28,11 @@ import { ApolloServerErrorCode } from '@apollo/server/errors'
       sortSchema: true,
       allowBatchedHttpRequests: true,
       includeStacktraceInErrorResponses: false,
+      formatError: (formattedError, error) => {
+        return {
+          message: formattedError.message,
+        }
+      },
     }),
     JwtModule.register({
       global: true,
