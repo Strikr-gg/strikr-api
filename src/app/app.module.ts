@@ -31,6 +31,7 @@ import { ApolloServerErrorCode } from '@apollo/server/errors'
       formatError: (formattedError, error) => {
         return {
           message: formattedError.message,
+          locations: formattedError.locations,
         }
       },
     }),
