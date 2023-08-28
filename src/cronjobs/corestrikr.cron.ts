@@ -258,11 +258,11 @@ async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
 }
 
 // RUN IT EVERY TIME THE SERVER RESTARTS
-// ;(async () => {
-//   await populateByBoardOffset(0, 25, 'NorthAmerica')
-//   await populateByBoardOffset(0, 25, 'SouthAmerica')
-//   await populateByBoardOffset(0, 25, 'Europe')
-//   await populateByBoardOffset(0, 25, 'Asia')
-//   await populateByBoardOffset(0, 25, 'Oceania')
-//   await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
-// })()
+;(async () => {
+  await populateByBoardOffset(0, 25, 'NorthAmerica')
+  await populateByBoardOffset(0, 25, 'SouthAmerica')
+  await populateByBoardOffset(0, 25, 'Europe')
+  await populateByBoardOffset(0, 25, 'Asia')
+  await populateByBoardOffset(0, 25, 'Oceania')
+  await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
+})()
