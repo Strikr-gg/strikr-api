@@ -140,6 +140,19 @@ async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
         },
       })
 
+      // IF OLDEST DATA IS OLDER THAN 2 MONTHS, SKIP
+      if (
+        strikrPlayer?.ratings?.[0] &&
+        dayjs(strikrPlayer?.ratings?.[0].createdAt).isBefore(
+          dayjs().subtract(2, 'month'),
+        )
+      ) {
+        corestrikrLogger.debug(
+          `Player ${player.playerId} has data older than 2 months, skipping`,
+        )
+        continue
+      }
+
       // OBTAIN FROM CORESTRIKE
       const { data: playerInCorestrike } = await axios.get<Root>(
         `https://corestrike.gg/lookup/${player.username}`,
@@ -245,11 +258,11 @@ async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
 }
 
 // RUN IT EVERY TIME THE SERVER RESTARTS
-;(async () => {
-  await populateByBoardOffset(0, 25, 'NorthAmerica')
-  await populateByBoardOffset(0, 25, 'SouthAmerica')
-  await populateByBoardOffset(0, 25, 'Europe')
-  await populateByBoardOffset(0, 25, 'Asia')
-  await populateByBoardOffset(0, 25, 'Oceania')
-  await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
-})()
+// ;(async () => {
+//   await populateByBoardOffset(0, 25, 'NorthAmerica')
+//   await populateByBoardOffset(0, 25, 'SouthAmerica')
+//   await populateByBoardOffset(0, 25, 'Europe')
+//   await populateByBoardOffset(0, 25, 'Asia')
+//   await populateByBoardOffset(0, 25, 'Oceania')
+//   await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
+// })()
