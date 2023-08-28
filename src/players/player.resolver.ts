@@ -126,6 +126,10 @@ export class PlayerResolver {
     })
     region?: string,
   ) {
+    if (region === 'auto') {
+      region = undefined
+    }
+
     const ensureLogger = new Logger('PlayerEnsuring')
     ensureLogger.debug(
       `Ensuring for player ${decodeURI(
