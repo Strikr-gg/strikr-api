@@ -280,10 +280,6 @@ async function deduplicatePlayerRatings() {
         rating.createdAt > uniquePlayerRatings[key].createdAt
       ) {
         uniquePlayerRatings[key] = rating
-      } else {
-        corestrikrLogger.debug(
-          `Deleting rating ${rating.id} for ${rating.playerId}`,
-        )
       }
     }
 
@@ -292,11 +288,18 @@ async function deduplicatePlayerRatings() {
     // Delete existing ratings
     await prisma.playerRating.deleteMany()
 
-    // Insert the deduplicated ratings
-    await prisma.playerRating.createMany({
-      data: uniqueRatingsArray,
-      skipDuplicates: true,
-    })
+    // Insert the deduplicated ratings in batches of 1000
+    const batchSize = 300
+    const totalRows = uniqueRatingsArray.length
+
+    for (let i = 0; i < totalRows; i += batchSize) {
+      corestrikrLogger.verbose(`Inserting ratings ${i} to ${i + batchSize}`)
+      const batch = uniqueRatingsArray.slice(i, i + batchSize)
+      await prisma.playerRating.createMany({
+        data: batch,
+        skipDuplicates: true,
+      })
+    }
 
     corestrikrLogger.debug(
       `Deduplicated ratings, resulted in ${uniqueRatingsArray.length} ratings after cleanup`,
