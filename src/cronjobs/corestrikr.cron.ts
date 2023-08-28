@@ -106,6 +106,7 @@ export class FetchCorestrike {
     await populateByBoardOffset(0, 25, 'Asia')
     await populateByBoardOffset(0, 25, 'Oceania')
     await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
+    await deduplicatePlayerRatings()
   }
 }
 
@@ -257,12 +258,54 @@ async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
   }
 }
 
-// RUN IT EVERY TIME THE SERVER RESTARTS
-;(async () => {
-  await populateByBoardOffset(0, 25, 'NorthAmerica')
-  await populateByBoardOffset(0, 25, 'SouthAmerica')
-  await populateByBoardOffset(0, 25, 'Europe')
-  await populateByBoardOffset(0, 25, 'Asia')
-  await populateByBoardOffset(0, 25, 'Oceania')
-  await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
-})()
+async function deduplicatePlayerRatings() {
+  try {
+    const allPlayerRatings = await prisma.playerRating.findMany({
+      orderBy: {
+        createdAt: 'asc',
+      },
+    })
+
+    corestrikrLogger.debug(
+      `Analyzing ${allPlayerRatings.length} player ratings`,
+    )
+
+    const uniquePlayerRatings: Record<string, any> = {}
+
+    for (const rating of allPlayerRatings) {
+      const ratingDate = rating.createdAt.toISOString().split('T')[0]
+      const key = `${rating.playerId}_${ratingDate}`
+      if (
+        !uniquePlayerRatings[key] ||
+        rating.createdAt > uniquePlayerRatings[key].createdAt
+      ) {
+        uniquePlayerRatings[key] = rating
+      } else {
+        corestrikrLogger.debug(
+          `Deleting rating ${rating.id} for ${rating.playerId}`,
+        )
+      }
+    }
+
+    const uniqueRatingsArray = Object.values(uniquePlayerRatings)
+
+    // Delete existing ratings
+    await prisma.playerRating.deleteMany()
+
+    // Insert the deduplicated ratings
+    await prisma.playerRating.createMany({
+      data: uniqueRatingsArray,
+      skipDuplicates: true,
+    })
+
+    corestrikrLogger.debug(
+      `Deduplicated ratings, resulted in ${uniqueRatingsArray.length} ratings after cleanup`,
+    )
+  } catch (error) {
+    console.error('Error deduplicating player ratings:', error)
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+deduplicatePlayerRatings()
