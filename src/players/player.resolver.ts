@@ -124,7 +124,7 @@ export class PlayerResolver {
         // eslint-disable-next-line prettier/prettier
         'Region overrider for the player. Strikr seeks for players on all regions and returns the first result on the first region it finds. Some players plays or played at more than one region. Providing the region overrider will force strikr to only look into the provided region. Giving overrider will make the player region be changed to the overriden one (unless the player can\'t be found on said region leaderboard)',
     })
-    region: string,
+    region?: string,
   ) {
     const ensureLogger = new Logger('PlayerEnsuring')
     ensureLogger.debug(

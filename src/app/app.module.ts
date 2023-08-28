@@ -17,7 +17,6 @@ import { EsportsModule } from 'src/esports/esports.module'
 import { ProxyModule } from 'src/proxy/proxy.module'
 import { UserResolver } from 'src/users/user.resolver'
 import { AuthResolver } from 'src/auth/auth.resolver'
-import { ApolloServerErrorCode } from '@apollo/server/errors'
 @Module({
   imports: [
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -28,7 +27,7 @@ import { ApolloServerErrorCode } from '@apollo/server/errors'
       sortSchema: true,
       allowBatchedHttpRequests: true,
       includeStacktraceInErrorResponses: false,
-      formatError: (formattedError, error) => {
+      formatError: (formattedError) => {
         return {
           message: formattedError.message,
           locations: formattedError.locations,

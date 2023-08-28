@@ -1,13 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
-import { prometheusService } from 'src/odyssey/prometheus/service'
 import { PrismaClient } from '@prisma/client'
 import axios from 'axios'
 import dayjs from 'dayjs'
+import { prometheusService } from 'src/odyssey/prometheus/service'
 const prisma = new PrismaClient()
 
 const corestrikrLogger = new Logger('CoreStrikr')
 
+type Regions =
+  | 'Global'
+  | 'NorthAmerica'
+  | 'Europe'
+  | 'Asia'
+  | 'SouthAmerica'
+  | 'Oceania'
+  | 'JapaneseLanguageText'
 export interface Root {
   rankedStats: RankedStats
   characterStats: CharacterStats
@@ -85,123 +93,163 @@ const Regions = [
   'JapaneseLanguageText',
 ]
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 @Injectable()
 export class FetchCorestrike {
-  @Cron('0 */6 * * *', {
-    disabled: true,
+  @Cron('0 */12 * * *', {
+    disabled: false,
     name: 'FetchCorestrike',
   })
   async handleCron() {
-    fetchFromCorestrike()
+    await populateByBoardOffset(0, 25, 'NorthAmerica')
+    await populateByBoardOffset(0, 25, 'SouthAmerica')
+    await populateByBoardOffset(0, 25, 'Europe')
+    await populateByBoardOffset(0, 25, 'Asia')
+    await populateByBoardOffset(0, 25, 'Oceania')
+    await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
   }
 }
 
-export async function fetchFromCorestrike() {
-  corestrikrLogger.log('Initiating corestrike import')
-  let requestCounter = 0
-  // Query scorestrike for the LP history and set invalid values for the
-  // missing data.
-  // This endpoint will do nothing if we already have rating at the same timestamp
-  // players ar not Dr.Who why the fuck odyssey timestamps their objects?
-  // why does the endpoint called player has "matches" as only object
-  // If we do, skip... past data cannot be modified. We are not Dr.Who
-  for (const region of Regions) {
-    corestrikrLogger.debug(`Mapping region: ${region}`)
-    const regionPlayers = await prisma.leaderboard.findMany({
-      where: {
-        region,
-      },
-    })
+async function populateByBoardOffset(offset = 0, count = 25, region?: Regions) {
+  if (!region || region === 'Global') {
+    corestrikrLogger.debug(
+      `Avoiding global region - ${region} - ${offset} - ${count}`,
+    )
+    return
+  }
 
-    for (const player of regionPlayers) {
-      corestrikrLogger.debug(
-        `Processing player ${player.username} @ ${player.region}`,
-      )
+  const leaderboardPlayers = await prometheusService.ranked.leaderboard.players(
+    offset,
+    count,
+    region,
+  )
 
-      if (requestCounter === 2) {
-        requestCounter = 0
-        // await sleep(1000)
-      }
+  for (const player of leaderboardPlayers.players) {
+    try {
+      // Look for this player on Strikr.gg
 
-      try {
-        const { data: playerInCorestrike } = await axios.get<Root>(
-          `https://corestrike.gg/lookup/${player.username}`,
-          {
-            params: {
-              region: player.region,
-              json: true,
-            },
-          },
-        )
-
-        requestCounter++
-        corestrikrLogger.debug(`Found player ${player.username} @ corestrike`)
-
-        // Get the oldest strikr snapsho, we will use strikr data whenever possible.
-        const oldestStrikerData = await prisma.player
-          .findUnique({
-            where: {
-              username: player.username.toLowerCase(),
-            },
-          })
-          .characterRatings({
+      const strikrPlayer = await prisma.player.findUnique({
+        where: {
+          id: player.playerId,
+        },
+        include: {
+          ratings: {
             orderBy: {
               createdAt: 'asc',
             },
-            take: 1,
-          })
-
-        if (!oldestStrikerData || oldestStrikerData.length === 0) {
-          corestrikrLogger.debug(
-            `Player ${player.username} has no strikr data - ignoring.`,
-          )
-          continue
-        }
-
-        if (
-          !playerInCorestrike.rankedStats.lp_history ||
-          playerInCorestrike.rankedStats.lp_history.length === 0
-        ) {
-          corestrikrLogger.debug(
-            `Player ${player.username} has no strikr data - importing everything.`,
-          )
-        }
-
-        playerInCorestrike.rankedStats.lp_history.sort((a, b) => b[0] - a[0])
-
-        if (
-          dayjs().isAfter(dayjs(oldestStrikerData?.[0].createdAt || new Date()))
-        ) {
-          corestrikrLogger.debug(`Player ${player.username} has older data.`)
-          continue
-        }
-
-        const ratingsInsertion = playerInCorestrike.rankedStats.lp_history.map(
-          (lp) => {
-            return {
-              playerId: player.playerId,
-              rating: lp[1],
-            }
           },
+        },
+      })
+
+      // OBTAIN FROM CORESTRIKE
+      const { data: playerInCorestrike } = await axios.get<Root>(
+        `https://corestrike.gg/lookup/${player.username}`,
+        {
+          params: {
+            region: region,
+            json: true,
+          },
+        },
+      )
+
+      corestrikrLogger.debug(
+        `Player ${player.username}#${player.playerId} @ ${region} found on corestrike - ${playerInCorestrike.rankedStats.lp_history.length} ratings [INSERTING]`,
+      )
+
+      // The player does not have any history, insert everything and return
+      if (!strikrPlayer) {
+        corestrikrLogger.debug(
+          `Player ${player.playerId} does not exist on Strikr.gg`,
         )
 
-        const data = await prisma.playerRating.createMany({
-          data: ratingsInsertion,
+        await prisma.player.create({
+          data: {
+            id: player.playerId,
+            region: region,
+            username: player.username,
+            ratings: {
+              createMany: {
+                data: playerInCorestrike.rankedStats.lp_history.map((cst) => {
+                  return {
+                    rating: cst[1],
+                    createdAt: dayjs(cst[0]).toISOString(),
+                    games: 0,
+                    wins: 0,
+                    losses: 0,
+                    masteryLevel: 0,
+                    rank: 10_001,
+                  }
+                }),
+              },
+            },
+          },
         })
 
-        corestrikrLogger.debug(
-          `Player ${player.username} : Created ${data.count} ratings.`,
+        corestrikrLogger.verbose(
+          `Created player ${player.playerId} corestrike -> strikr.gg entries`,
         )
-        // Loop through the timestamps.
-      } catch (e) {
-        corestrikrLogger.error('Failed to import data from corestrike', e)
+
+        continue
       }
+
+      const oldestStrikerData = strikrPlayer?.ratings?.[0] || {
+        createdAt: dayjs(),
+      }
+      const oldestCorestrikeData = [
+        ...playerInCorestrike.rankedStats.lp_history,
+      ].sort((a, b) => (dayjs(b[1]).isBefore(dayjs(a[1])) ? 1 : -1))[0]
+
+      corestrikrLogger.debug(
+        `Oldest Strikr.gg data: ${dayjs(oldestStrikerData?.createdAt).format(
+          'DD/MM/YYYY',
+        )} | Oldest Corestrike data: ${dayjs(oldestCorestrikeData[0]).format(
+          'DD/MM/YYYY',
+        )}`,
+      )
+
+      const ratingsToInsert = playerInCorestrike.rankedStats.lp_history.filter(
+        (cst) => {
+          return dayjs(cst[0]).isBefore(dayjs(oldestStrikerData.createdAt))
+        },
+      )
+
+      corestrikrLogger.debug(
+        `Player ${player.username}#${player.playerId} has ${ratingsToInsert.length} ratings to insert`,
+      )
+
+      await prisma.playerRating.createMany({
+        data: ratingsToInsert.map((cst) => {
+          return {
+            playerId: player.playerId,
+            rating: cst[1],
+            createdAt: dayjs(cst[0]).toISOString(),
+            games: 0,
+            wins: 0,
+            losses: 0,
+            masteryLevel: 0,
+            rank: 10_001,
+          }
+        }),
+      })
+
+      continue
+    } catch (e) {
+      corestrikrLogger.error(
+        `Error updating player ${player.playerId} #${player.rank} @ ${region}: ${e}`,
+      )
     }
+  }
+
+  if (leaderboardPlayers.paging.totalItems > offset + count) {
+    await populateByBoardOffset(offset + count, count, region)
   }
 }
 
-// fetchFromCorestrike()
+// RUN IT EVERY TIME THE SERVER RESTARTS
+;(async () => {
+  await populateByBoardOffset(0, 25, 'NorthAmerica')
+  await populateByBoardOffset(0, 25, 'SouthAmerica')
+  await populateByBoardOffset(0, 25, 'Europe')
+  await populateByBoardOffset(0, 25, 'Asia')
+  await populateByBoardOffset(0, 25, 'Oceania')
+  await populateByBoardOffset(0, 25, 'JapaneseLanguageText')
+})()
