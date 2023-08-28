@@ -28,7 +28,7 @@ export class UpdateLearderboard {
       'Asia',
       'SouthAmerica',
       'Oceania',
-      'JapaneseTextLanguage',
+      'JapaneseLanguageText',
     ]) {
       // Deleting all current players:
       updates.push(populateByBoardOffset(0, 25, region as Regions))
