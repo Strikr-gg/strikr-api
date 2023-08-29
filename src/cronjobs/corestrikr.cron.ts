@@ -310,5 +310,3 @@ async function deduplicatePlayerRatings() {
     await prisma.$disconnect()
   }
 }
-
-deduplicatePlayerRatings()
