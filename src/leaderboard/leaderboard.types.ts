@@ -30,6 +30,14 @@ registerEnumType(leaderboardFilters, {
 })
 
 @ObjectType()
+export class leaderboardResult {
+  @Field(() => [leaderboardPlayerItem])
+  players: leaderboardPlayerItem[]
+
+  @Field(() => Number)
+  total: number
+}
+@ObjectType()
 export class leaderboardPlayerItem {
   @Field()
   createdAt: Date

@@ -1,17 +1,16 @@
 import { Args, Int, Query, Resolver } from '@nestjs/graphql'
 import {
   leaderboardFilters,
-  leaderboardPlayerItem,
+  leaderboardResult,
   leaderboardRegions,
 } from './leaderboard.types'
 import { PrismaService } from 'src/prisma.service'
-import { filter } from 'rxjs'
 
 @Resolver()
 export class LeaderboardResolver {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Query(() => [leaderboardPlayerItem], {
+  @Query(() => leaderboardResult, {
     description: 'Returns the whole snapshot of the leaderboard players.',
   })
   async getLeaderboard(
@@ -49,6 +48,8 @@ export class LeaderboardResolver {
       description: 'Defines the page of the leaderboard (Defaults to 0)',
     })
     page?: number,
+    @Args('startrank', { type: () => Int, nullable: true })
+    startrank?: number,
   ) {
     if (!order) {
       order = 'asc'
@@ -70,16 +71,32 @@ export class LeaderboardResolver {
       page = 0
     }
 
+    let where: { [key: string]: any } = {
+      region: region,
+    }
+
+    if (startrank) {
+      where = {
+        ...where,
+        rating: {
+          gte: startrank, // Adjust the range as needed
+          lte: startrank + 99,
+        },
+      }
+    }
+
     const result = await this.prisma.leaderboard.findMany({
-      ...(region ? { where: { region } } : {}),
+      where,
       orderBy: {
         [leaderboardFilters[filterBy]]: order,
       },
-      take: limit ? 50 : limit,
       skip: limit * page,
     })
 
-    return result
+    return {
+      players: result.slice(0, limit),
+      total: result.length,
+    }
   }
 
   @Query(() => [String])

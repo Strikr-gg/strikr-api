@@ -304,7 +304,8 @@ type Query {
     The desired raw region id. Regions can be obtained with getLeadeboardRegions (Defaults to Global)
     """
     region: String
-  ): [leaderboardPlayerItem!]!
+    startrank: Int
+  ): leaderboardResult!
   getLeaderboardRegions: [String!]!
 
   """
@@ -390,4 +391,9 @@ type leaderboardPlayerItem {
   topRole: String!
   username: String!
   wins: Float!
+}
+
+type leaderboardResult {
+  players: [leaderboardPlayerItem!]!
+  total: Float!
 }
