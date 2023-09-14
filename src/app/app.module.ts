@@ -17,7 +17,6 @@ import { EsportsModule } from 'src/esports/esports.module'
 import { ProxyModule } from 'src/proxy/proxy.module'
 import { UserResolver } from 'src/users/user.resolver'
 import { AuthResolver } from 'src/auth/auth.resolver'
-import { UpdateCharacterLeaderboard } from 'src/cronjobs/characterLeaderboard.cron'
 @Module({
   imports: [
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -57,7 +56,6 @@ import { UpdateCharacterLeaderboard } from 'src/cronjobs/characterLeaderboard.cr
     AuthService,
     UpdateLearderboard,
     FetchCorestrike,
-    UpdateCharacterLeaderboard,
     // GuideResolver,
     UserResolver,
     // PlayerResolver,
