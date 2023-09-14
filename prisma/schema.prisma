@@ -48,6 +48,7 @@ model PlayerRating {
   games        Int      @default(0)
   createdAt    DateTime @default(now())
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season       Int      @default(1)
 }
 
 model PlayerCharacterRating {
@@ -66,6 +67,7 @@ model PlayerCharacterRating {
   gamemode  Gamemode
   createdAt DateTime @default(now())
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season    Int   @default(1)
 }
 
 model Match {
@@ -139,6 +141,19 @@ model Leaderboard {
   createdAt    DateTime @default(now())
 
   @@id([playerId, region])
+}
+
+model CharacterLeaderboard {
+  playerId  String
+  character String
+  role      String
+  wins      Int
+  losses    Int
+  leaderboardPoints    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([playerId, character, role])
 }
 
 enum Gamemode {
