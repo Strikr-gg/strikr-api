@@ -96,7 +96,7 @@ const Regions = [
 @Injectable()
 export class FetchCorestrike {
   @Cron('0 */12 * * *', {
-    disabled: false,
+    disabled: true,
     name: 'FetchCorestrike',
   })
   async handleCron() {
@@ -292,6 +292,8 @@ async function deduplicatePlayerRatings() {
     const batchSize = 300
     const totalRows = uniqueRatingsArray.length
 
+    // this is absolutely disgusting btw
+    // this is the result of 5am coding.
     for (let i = 0; i < totalRows; i += batchSize) {
       corestrikrLogger.verbose(`Inserting ratings ${i} to ${i + batchSize}`)
       const batch = uniqueRatingsArray.slice(i, i + batchSize)
