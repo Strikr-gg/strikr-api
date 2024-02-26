@@ -54,8 +54,8 @@ pm start:prod
 | JWT_SECRET            | string | Random, preferably big string used as JWT encryption seed (i recommend uuidv4) |
 | ODYSSEY_TOKEN         | string | Omega Strikers JWT token.               |
 | ODYSSEY_REFRESH_TOKEN | string | Omega Strikers JWT Refresh Token.       |
-| DATABASE_URL          | string | [Prisma DB URL Schema](https://www.prisma.io/docs/orm/overview/databases/postgresql)
-
+| DATABASE_URL          | string | [Prisma DB URL Schema](https://www.prisma.io/docs/orm/overview/databases/postgresql) |
+| ODYSSEY_URL           | string | Odyssey api url for Prometheus (OS) Game |
 
 ## FAQ
 > This code sucks!
