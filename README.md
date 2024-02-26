@@ -1,73 +1,90 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Strikr - API
+Strikr is a front-end for the [strikr API](https://strikr-gg/strikr) @ [strikr.gg](https://strikr.gg).<br />
+The website running this application was made as a way to demonstrate what could be built using strikr as relay to the game [OmegaStrikers](https://store.steampowered.com/app/1869590/Omega_Strikers/).
+<br />
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## About this repository
+The source code for this API was previously private because I (@nodgear) signed an NDA with [Odyssey Interactive](https://www.odysseyinteractive.gg/) after my efforts to reverse engineer the game API but the endpoints ended up being reverse engineered and published in github a while ago.
+<br />
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### Features
+- Displays all information displayed in game and much more by tapping into unused/hidden api endpoints from Odyssey.
+- Smart Caching:
+  - Not so smart...
+  - If a user cache is from the "past day or before" a new snapshot of this user is created.
+  - Returns the last known state of the user directly from our snapshots table instead of making unecessary requests to the game API. reducing the request time to fractions of normal.
+  - Can be easily bypassed by passing a force parameter, forcing the api to renew the user snapshot using fresh game data.
+- Leaderboard cache for every region. 
+- Suports japanese server (why do i even have to list this as feature? common, guys, requires 0 effort to just support all servers)
+- Capable of importing data from corestrike, another tool for the game tapping into the same api. This cronjob is disabled by default, please ask the developer of corestrike.gg for permission before running.*
+- Displays information for alternative gamemodes, including but not limited to normal games.
 
-## Description
+*: Corestrike does not expose all information strikr needs, which means it only imports ranked data into strikr ranked snapshots
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Requirements
+- NodeJS 14+
+- Relational database (Recommended: PostgreSQL)
 
-## Installation
-
+## Running this application
+1. Create a new `.env` file in the root directory
+2. Fill the env file following the [Environment Variables section](https://github.com/Strikr-gg/strikr-api#environment-variables)
+3. Run the following commands
 ```bash
-$ yarn install
+# pm = your nodejs package manager [npm/pnpm/yarn...]
+
+# Push the current database schema to your db
+pm prisma db push
+
+# Generate Prisma Typings for the project
+pm prisma db generate
+
+# Run API in development mode:
+pm start:dev
+
+# Build the project
+pm build
+
+# Run API in production mode
+pm start:prod
 ```
 
-## Running the app
+### Environment Variables
+| Env                   | Type   | Description                             |
+|-----------------------|--------|-----------------------------------------|
+| JWT_SECRET            | string | Random, preferably big string used as JWT encryption seed (i recommend uuidv4) |
+| ODYSSEY_TOKEN         | string | Omega Strikers JWT token.               |
+| ODYSSEY_REFRESH_TOKEN | string | Omega Strikers JWT Refresh Token.       |
+| DATABASE_URL          | string | [Prisma DB URL Schema](https://www.prisma.io/docs/orm/overview/databases/postgresql)
 
-```bash
-# development
-$ yarn run start
 
-# watch mode
-$ yarn run start:dev
+## FAQ
+> This code sucks!
 
-# production mode
-$ yarn run start:prod
-```
+: i cannot disagree, but i've seen worse
 
-## Test
+> Why are there mentions of game caracters like `playmaker`?
 
-```bash
-# unit tests
-$ yarn run test
+: Omega strikers internal name is Prometheus, and like the game itself, all characters and skills have internal names different from their final names in-game.
 
-# e2e tests
-$ yarn run test:e2e
+> How do i obtain the prometheus/odyssey jwt token?
 
-# test coverage
-$ yarn run test:cov
-```
+: I cannot give you this information since it was not disclosed by someone else
 
-## Support
+> Where's the interface?
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+: This is just the API code.<br /> For the front-end check this repository: (Strikr)[https://strikr-gg/strikr].<br />Note: The website was originally made to showcase the API but got extremely popular. Some calculations there are made for showcasing purposes and does not reflect real life performance.
 
-## Stay in touch
+> Why this api doesn't grab the token by itself?
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+: It is how strikr used to run and i recommend doing it instead of saving into the env<br />The branch containing this feature cannot be published. same as question 3.
 
-## License
+<hr />
 
-Nest is [MIT licensed](LICENSE).
+> [!IMPORTANT]  
+> I am not affiliate/endorsed by Odyssey Interactive.<br />
+> Omega Strikers and it's assets are property of Odyssey Interactive<br />
+
+### Extra credits:
+- [FModel](https://fmodel.app/), uModel : game content extracting
+- NestJS, Apollo & GraphQL: Stack used
+- [Open The Prometheus Community](https://discord.gg/f79GkCDAxy) : Friendly community for omega strikrs rev. eng. & modding
