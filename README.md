@@ -36,7 +36,7 @@ The source code for this API was previously private because I (@nodgear) signed 
 pm prisma db push
 
 # Generate Prisma Typings for the project
-pm prisma db generate
+pm prisma generate
 
 # Run API in development mode:
 pm start:dev
