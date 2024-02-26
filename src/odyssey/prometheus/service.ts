@@ -32,7 +32,7 @@ export default class PrometheusService {
         this._logger.debug(
           `Error on request 
     | rs: ${error?.response?.status || '?'}
-    | ep: ${error?.config?.baseUrl}${error?.config?.url}
+    | ep: ${error?.config?.baseURL}${error?.config?.url}
     | m: ${error?.response?.data?.message || '?'}
     `,
         )
